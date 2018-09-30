@@ -3,9 +3,12 @@
 //
 
 #include "SpinLock.h"
+#include <Core/Util.h>
 
-Relic::SpinLock::SpinLock() : lock_status(false)
-{}
+Relic::SpinLock::SpinLock() : lock_status()
+{
+    lock_status.clear();
+}
 
 bool Relic::SpinLock::TryAcquire()
 {
@@ -18,7 +21,7 @@ void Relic::SpinLock::Acquire()
     while (!TryAcquire())
     {
         //Ask the cpu to pause for a couple of cycles (saves power)
-        __asm__("pause;");
+        PAUSE();
     }
 }
 

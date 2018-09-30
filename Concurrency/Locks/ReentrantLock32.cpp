@@ -4,6 +4,7 @@
 
 #include <thread>
 #include <assert.h>
+#include <Core/Util.h>
 #include "ReentrantLock32.h"
 
 using namespace Relic;
@@ -25,7 +26,7 @@ void ReentrantLock32::Acquire()
         while(!owner.compare_exchange_weak(unlock_value, tid, std::memory_order_relaxed, std::memory_order_relaxed))
         {
             unlock_value = 0;
-            __asm__("pause;");
+            PAUSE();
         }
 
         ++ref_count;
