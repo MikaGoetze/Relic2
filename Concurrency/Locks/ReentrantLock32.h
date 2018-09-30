@@ -10,33 +10,28 @@
 
 namespace Relic
 {
-    namespace Concurrency
+
+    class ReentrantLock32
     {
-        namespace Locks
-        {
-            class ReentrantLock32
-            {
-            private:
-                std::atomic<std::size_t>  owner;
-                std::int32_t ref_count;
+    private:
+        std::atomic<std::size_t> owner;
+        std::int32_t ref_count;
 
-            public:
-                ///Creates a reentrant lock (32 bit)
-                ReentrantLock32();
+    public:
+        ///Creates a reentrant lock (32 bit)
+        ReentrantLock32();
 
-                ///Acquires the lock if not already acquired by the same thread. [Blocking]
-                void Acquire();
+        ///Acquires the lock if not already acquired by the same thread. [Blocking]
+        void Acquire();
 
-                ///Release the lock. [Non Blocking]
-                void Release();
+        ///Release the lock. [Non Blocking]
+        void Release();
 
-                /// Attemps to acquire the lock. [Non Blocking]
-                /// \return Returns whether or not the lock was successfully acquired
-                bool TryAcquire();
-            };
+        /// Attemps to acquire the lock. [Non Blocking]
+        /// \return Returns whether or not the lock was successfully acquired
+        bool TryAcquire();
+    };
 
-        }
-    }
 }
 
 

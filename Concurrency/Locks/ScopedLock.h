@@ -5,35 +5,36 @@
 #ifndef RELIC_2_0_SCOPEDLOCK_H
 #define RELIC_2_0_SCOPEDLOCK_H
 
-namespace Relic {
-    namespace Concurrency {
-        namespace Locks {
-            template<class LOCK>
-            class ScopedLock {
-            private:
-                LOCK* target_lock;
+namespace Relic
+{
 
-            public:
-                /// Creates a new scoped lock.
-                /// \param lock - The lock to use.
-                explicit ScopedLock(LOCK& lock);
+    template<class LOCK>
+    class ScopedLock
+    {
+    private:
+        LOCK *target_lock;
 
-                ~ScopedLock();
-            };
+    public:
+        /// Creates a new scoped lock.
+        /// \param lock - The lock to use.
+        explicit ScopedLock(LOCK &lock);
 
-            template<class LOCK>
-            ScopedLock<LOCK>::ScopedLock(LOCK &lock) : target_lock(&lock)
-            {
-                target_lock->Acquire();
-            }
+        ~ScopedLock();
+    };
 
-            template<class LOCK>
-            ScopedLock<LOCK>::~ScopedLock() {
-                target_lock->Release();
-            }
-
-        }
+    template<class LOCK>
+    ScopedLock<LOCK>::ScopedLock(LOCK &lock) : target_lock(&lock)
+    {
+        target_lock->Acquire();
     }
+
+    template<class LOCK>
+    ScopedLock<LOCK>::~ScopedLock()
+    {
+        target_lock->Release();
+    }
+
 }
+
 
 #endif //RELIC_2_0_SCOPEDLOCK_H

@@ -4,14 +4,14 @@
 
 #include "UnecessaryLock.h"
 
-void Relic::Concurrency::Locks::UnecessaryLock::Acquire()
+void Relic::UnecessaryLock::Acquire()
 {
     assert(!is_locked);
 
     is_locked = true;
 }
 
-void Relic::Concurrency::Locks::UnecessaryLock::Release()
+void Relic::UnecessaryLock::Release()
 {
     assert(is_locked);
 

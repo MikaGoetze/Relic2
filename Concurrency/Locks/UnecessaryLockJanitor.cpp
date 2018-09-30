@@ -4,12 +4,12 @@
 
 #include "UnecessaryLockJanitor.h"
 
-Relic::Concurrency::Locks::UnecessaryLockJanitor::UnecessaryLockJanitor(Relic::Concurrency::Locks::UnecessaryLock &lock) : lock(&lock)
+Relic::UnecessaryLockJanitor::UnecessaryLockJanitor(Relic::UnecessaryLock &lock) : lock(&lock)
 {
     this->lock->Acquire();
 }
 
-Relic::Concurrency::Locks::UnecessaryLockJanitor::~UnecessaryLockJanitor()
+Relic::UnecessaryLockJanitor::~UnecessaryLockJanitor()
 {
     lock->Release();
 }

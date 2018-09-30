@@ -6,7 +6,7 @@
 #include <assert.h>
 #include "ReentrantLock32.h"
 
-using namespace Relic::Concurrency::Locks;
+using namespace Relic;
 
 ReentrantLock32::ReentrantLock32() : owner(0), ref_count(0)
 {

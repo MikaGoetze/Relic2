@@ -8,32 +8,28 @@
 
 #include <atomic>
 
-namespace Relic {
-    namespace Concurrency {
-        namespace Locks {
+namespace Relic
+{
+    class SpinLock
+    {
+    private:
+        std::atomic_flag lock_status;
 
-            class SpinLock {
-            private:
-                std::atomic_flag lock_status;
+    public:
+        ///Constructs a new SpinLock object.
+        SpinLock();
 
-            public:
-                ///Constructs a new SpinLock object.
-                SpinLock();
+        /// Attempts to acquire the lock. [Non Blocking]
+        /// \return Returns true if acquisition was successful, false otherwise.
+        bool TryAcquire();
 
-                /// Attempts to acquire the lock. [Non Blocking]
-                /// \return Returns true if acquisition was successful, false otherwise.
-                bool TryAcquire();
+        ///Acquires the lock. [Blocking]
+        void Acquire();
 
-                ///Acquires the lock. [Blocking]
-                void Acquire();
+        ///Releases the lock. [Non Blocking]
+        void Release();
 
-                ///Releases the lock. [Non Blocking]
-                void Release();
-
-            };
-        }
-    }
-
+    };
 }
 
 #endif //RELIC_2_0_SPINLOCK_H

@@ -9,24 +9,18 @@
 
 namespace Relic
 {
-    namespace Concurrency
+
+    class UnecessaryLock
     {
-        namespace Locks
-        {
-            class UnecessaryLock
-            {
-            private:
-                volatile bool is_locked;
+    private:
+        volatile bool is_locked;
 
-            public:
-                void Acquire();
+    public:
+        void Acquire();
 
-                void Release();
+        void Release();
 
-            };
-
-        }
-    }
+    };
 }
 
 #if ASSERTIONS_ENABLED

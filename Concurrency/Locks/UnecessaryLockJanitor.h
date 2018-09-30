@@ -7,24 +7,19 @@
 
 #include "UnecessaryLock.h"
 
+
 namespace Relic
 {
-    namespace Concurrency
+    class UnecessaryLockJanitor
     {
-        namespace Locks
-        {
-            class UnecessaryLockJanitor
-            {
-            private:
-                UnecessaryLock* lock;
+    private:
+        UnecessaryLock *lock;
 
-            public:
-                explicit UnecessaryLockJanitor(UnecessaryLock& lock);
-                ~UnecessaryLockJanitor();
-            };
+    public:
+        explicit UnecessaryLockJanitor(UnecessaryLock &lock);
 
-        }
-    }
+        ~UnecessaryLockJanitor();
+    };
 }
 
 #if ASSERTIONS_ENABLED

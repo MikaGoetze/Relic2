@@ -4,18 +4,16 @@
 
 #include "SpinLock.h"
 
-using namespace Relic::Concurrency::Locks;
-
-SpinLock::SpinLock() : lock_status(false)
+Relic::SpinLock::SpinLock() : lock_status(false)
 {}
 
-bool SpinLock::TryAcquire()
+bool Relic::SpinLock::TryAcquire()
 {
     bool already_locked = lock_status.test_and_set(std::memory_order::memory_order_acquire);
     return !already_locked;
 }
 
-void SpinLock::Acquire()
+void Relic::SpinLock::Acquire()
 {
     while (!TryAcquire())
     {
@@ -24,7 +22,8 @@ void SpinLock::Acquire()
     }
 }
 
-void SpinLock::Release()
+void Relic::SpinLock::Release()
 {
     lock_status.clear(std::memory_order::memory_order_release);
 }
+
