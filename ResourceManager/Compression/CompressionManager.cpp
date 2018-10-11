@@ -3,114 +3,201 @@
 //
 
 #include <Debugging/Logger.h>
+#include <cstring>
 #include "CompressionManager.h"
 
-void CompressionManager::WriteInt(FILE *fp, int i)
+void CompressionManager::WriteInt(int i)
 {
-    size_t written = fwrite(&i, sizeof(i), 1, fp);
+    size_t written = fwrite(&i, sizeof(i), 1, currentFile);
     if(written != 1) Logger::Log("[CompressionManager] [ERR} Failed to write int.");
 }
 
-void CompressionManager::WriteBin(FILE *fp, const void *bytes, size_t size)
+void CompressionManager::WriteBin(const void *bytes, size_t size)
 {
-    size_t written = fwrite(bytes, 1, size, fp);
+    size_t written = fwrite(bytes, 1, size, currentFile);
     if(written != size) Logger::Log("[CompressionManager] [ERR} Failed to write bytes.");
 }
 
-void CompressionManager::ReadInt(FILE *fp, int *i)
+void CompressionManager::ReadInt(int *i)
 {
-    size_t read = fread(i, sizeof(*i), 1, fp);
+    size_t read = fread(i, sizeof(*i), 1, currentFile);
     if(read != 1) Logger::Log("[CompressionManager] [ERR] Failed to read int.");
 }
 
-void CompressionManager::ReadBin(FILE *fp, void *bytes, size_t size)
+void CompressionManager::ReadBin(void *bytes, size_t size)
 {
-    size_t read = fread(bytes, 1, size, fp);
+    size_t read = fread(bytes, 1, size, currentFile);
     if(read != size) Logger::Log("[CompressionManager] [ERR] Failed to read bytes.");
 }
 
-void CompressionManager::SeekBin(FILE *fp, long offset, int origin)
+void CompressionManager::SeekBin(long offset, int origin)
 {
-    if(fseek(fp, offset, origin)) Logger::Log("[CompressionManager] [ERR} Failed to seek file.");
+    if(fseek(currentFile, offset, origin)) Logger::Log("[CompressionManager] [ERR} Failed to seek file.");
 }
 
-CompressionManager::Metadata *CompressionManager::ReadMetadata(FILE *fp)
+CompressionManager::Metadata *CompressionManager::ReadMetadata()
 {
     //Make sure that the file pointer is reset.
-    SeekBin(fp, 0, SEEK_SET);
+    SeekBin(0, SEEK_SET);
 
     //Create a new metadata object
     auto * metadata = new Metadata();
 
     //Now we read a fixed size number of bytes, and build metadata.
-    ReadBin(fp, static_cast<void*>(metadata), sizeof(*metadata));
+    ReadBin(static_cast<void*>(metadata), sizeof(*metadata));
 
     return metadata;
 }
 
-void CompressionManager::WriteMetadata(FILE *fp, const struct Metadata *metadata)
+void CompressionManager::WriteMetadata(const Metadata *metadata)
 {
     //Go back to the start of the file and write out the metadata.
-    fseek(fp, 0, SEEK_SET);
-    WriteBin(fp, metadata, sizeof(*metadata));
+    fseek(currentFile, 0, SEEK_SET);
+    WriteBin(metadata, sizeof(*metadata));
 }
 
-void CompressionManager::WriteFileTable(FILE *fp)
+void CompressionManager::WriteFileTable()
 {
-    struct Metadata meta{};
+    Metadata meta{};
     meta.version_number = version_number;
-    meta.lut_size = sizeof(struct Pair) * fileTable->lut_size;
+    meta.lut_size = sizeof(Pair) * fileTable->lut_size;
     meta.filetable_size = sizeof(*fileTable);
 
     //Write the metadata to file
-    WriteMetadata(fp, &meta);
+    WriteMetadata(&meta);
 
     //Write the file table to file.
-    WriteBin(fp, fileTable, meta.filetable_size);
-    WriteBin(fp, fileTable->lut, meta.lut_size);
+    WriteBin(fileTable, meta.filetable_size);
+    WriteBin(fileTable->lut, meta.lut_size);
 }
 
-void CompressionManager::ReadFileTable(FILE *fp)
+void CompressionManager::ReadFileTable()
 {
     //Read the metadata
-    struct Metadata* meta = ReadMetadata(fp);
+    Metadata* meta = ReadMetadata();
 
     //Now we read the file table
-    fileTable = new struct FileTable(meta->lut_size / sizeof(struct Pair));
+    fileTable = new FileTable(meta->lut_size / sizeof(Pair));
 
-    ReadBin(fp, fileTable, meta->filetable_size);
-    ReadBin(fp, fileTable->lut, meta->lut_size);
+    ReadBin(fileTable, meta->filetable_size);
+    ReadBin(fileTable->lut, meta->lut_size);
 }
 
 void CompressionManager::Test()
 {
-    FILE* fp = fopen("test.bin", "wb+");
-    fileTable = new FileTable(3);
+    int a = 4;
+    Pair b {10, 10};
+    float c = 12.4;
 
-    fileTable->lut[0] = Pair(0, 5);
-    fileTable->lut[1] = Pair(1, 10);
-    fileTable->lut[2] = Pair(2, 15);
+    SetRPACK("test.rpack");
 
-    WriteFileTable(fp);
+    AddResource(&a, sizeof(a), 0);
+    AddResource(&b, sizeof(b), 1);
+    AddResource(&c, sizeof(c), 2);
 
-    //Now we clear the filetable, and read
-    fclose(fp);
+    WriteRPACK();
 
-    delete fileTable;
-    fileTable = nullptr;
+    printf("%i\n", *LoadResource<int>(0));
+    Pair* p = LoadResource<Pair>(1);
+    printf("%i, %i\n", static_cast<int>(p->offset), static_cast<int>(p->guid));
+    printf("%f\n", *LoadResource<float>(2));
+}
 
-    fp = fopen("test.bin", "rb");
-    ReadFileTable(fp);
-
-    int size = static_cast<int>(fileTable->lut_size);
-    for(int i = 0; i < size; i++)
+void CompressionManager::SetRPACK(std::string target)
+{
+    //If there was a previously loaded RPACK and it needs a write, let's write it now.
+    if(!currentRPACK.empty() && ::strcmp(target.c_str(), currentRPACK.c_str()) != 0 && needsWrite)
     {
-        int val = static_cast<int>(fileTable->lut[i].offset);
-        printf("%i: %i\n", i, val);
+        WriteRPACK();
     }
 
-    fclose(fp);
+    currentRPACK = target;
+
+    //Clear and reset current resources.
+    for (auto &currentResource : *currentResources)
+    {
+        delete currentResource;
+    }
+    currentResources->clear();
+}
+
+void CompressionManager::AddResource(void *data, size_t dataSize, uint_fast32_t guid)
+{
+    if(currentRPACK.empty())
+    {
+        Logger::Log("[CompressionManager] {ERR} Trying to add file before RPACK is selected.");
+        return;
+    }
+    auto * resource = new Resource();
+    resource->data = data;
+    resource->dataSize = dataSize;
+    resource->guid = guid;
+
+    currentResources->push_back(resource);
+    needsWrite = true;
+}
+
+void CompressionManager::WriteRPACK()
+{
+    if(!needsWrite) return;
+    currentFile = fopen(currentRPACK.c_str(), "wb");
+
+    //Delete the old file table, if there is one.
     delete fileTable;
+
+    fileTable = new FileTable(currentResources->size());
+
+    //Go through each loaded resource and add it to the file table.
+    uint_fast32_t offset = 0;
+    for(unsigned long i = 0; i < currentResources->size(); i++)
+    {
+        fileTable->lut[i].offset = offset;
+        fileTable->lut[i].guid = currentResources->at(i)->guid;
+        offset += currentResources->at(i)->dataSize;
+    }
+
+    //Write out the file table.
+    WriteFileTable();
+
+    //Now we write out the actual files
+    for (auto &currentResource : *currentResources)
+    {
+        WriteBin(currentResource->data, currentResource->dataSize);
+    }
+
+    fclose(currentFile);
+    currentFile = nullptr;
+
+    needsWrite = false;
+}
+
+CompressionManager::~CompressionManager()
+{
+    delete fileTable;
+
+    for (auto &currentResource : *currentResources)
+    {
+        delete currentResource;
+    }
+
+    delete currentResources;
+}
+
+CompressionManager::CompressionManager()
+{
+    currentRPACK = "";
+    currentResources = new std::vector<Resource*>();
+    currentFile = nullptr;
+    fileTable = nullptr;
+}
+
+CompressionManager::Pair *CompressionManager::SearchForGUID(uint_fast32_t guid)
+{
+    for(int i = 0; i < fileTable->lut_size; i++)
+    {
+        if(fileTable->lut[i].guid == guid) return &fileTable->lut[i];
+    }
+    return nullptr;
 }
 
 CompressionManager::Pair::Pair(uint_fast32_t guid, size_t offset)

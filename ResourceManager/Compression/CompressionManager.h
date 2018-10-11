@@ -7,6 +7,9 @@
 
 #include <ResourceManager/Compression/lz4/lz4hc.h>
 #include <cstdio>
+#include <string>
+#include <vector>
+#include <Debugging/Logger.h>
 
 
 class CompressionManager
@@ -27,6 +30,13 @@ private:
         Pair(uint_fast32_t guid, size_t offset);
 
         size_t offset;
+        uint_fast32_t guid;
+    };
+
+    struct Resource
+    {
+        void* data;
+        size_t dataSize;
         uint_fast32_t guid;
     };
 
@@ -52,27 +62,67 @@ private:
     const uint_fast8_t version_number = 1;
     const uint_fast32_t block_bytes = 1024;
 
-    FILE* current_file;
-    struct FileTable* fileTable;
+    FILE* currentFile;
+    FileTable* fileTable;
+    std::string currentRPACK;
+    std::vector<Resource*> *currentResources;
+    bool needsWrite = false;
 
     //Read and write functions.
-    void WriteInt(FILE* fp, int i);
-    void WriteBin(FILE* fp, const void* bytes, size_t size);
-    void ReadInt(FILE* fp, int* i);
-    void ReadBin(FILE* fp, void* bytes, size_t size);
-    void SeekBin(FILE* fp, long offset, int origin);
+    void WriteInt(int i);
+    void WriteBin(const void* bytes, size_t size);
+    void ReadInt(int* i);
+    void ReadBin(void* bytes, size_t size);
+    void SeekBin(long offset, int origin);
 
     //Read and write metadata from files.
-    struct Metadata* ReadMetadata(FILE* fp);
-    void WriteMetadata(FILE* fp, const struct Metadata* metadata);
+    Metadata* ReadMetadata();
+    void WriteMetadata(const Metadata* metadata);
 
-    void WriteFileTable(FILE* fp);
-    void ReadFileTable(FILE* fp);
+    void WriteFileTable();
+    void ReadFileTable();
+
+    //Search through file table
+    Pair* SearchForGUID(uint_fast32_t guid);
 
 public:
+
+    CompressionManager();
+    ~CompressionManager();
+    void SetRPACK(std::string target);
+    void AddResource(void* data, size_t dataSize, uint_fast32_t guid);
+    void WriteRPACK();
+
+    template <typename T>
+    T* LoadResource(uint_fast32_t guid);
 
     void Test();
 };
 
+//Template definitions
+template<typename T>
+T* CompressionManager::LoadResource(uint_fast32_t guid)
+{
+    currentFile = fopen(currentRPACK.c_str(), "rb");
+    if(fileTable == nullptr)
+        ReadFileTable();
+
+    //Now we look up the requested resource
+    Pair* pair = SearchForGUID(guid);
+
+    //If we didn't find it, then it's not in this RPACK
+    if(pair == nullptr)
+    {
+        Logger::Log("[CompressionManager] [WRN] Could not find file...");
+        return nullptr;
+    }
+
+    T* t = new T();
+
+    size_t ftOffset = sizeof(Pair) * fileTable->lut_size + sizeof(*fileTable);
+    SeekBin(pair->offset + (ftOffset), SEEK_SET);
+    ReadBin(t, sizeof(*t));
+    return t;
+}
 
 #endif //RELIC_2_0_COMPRESSIONMANAGER_H

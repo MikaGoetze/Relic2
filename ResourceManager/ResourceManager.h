@@ -5,13 +5,14 @@
 #ifndef RELIC_2_0_RESOURCEMANAGER_H
 #define RELIC_2_0_RESOURCEMANAGER_H
 
-#include <ResourceManager/Compression/lz4/lz4hc.h>
+#include <cstdint>
+#include <cstdio>
 
 class ResourceManager
 {
 private:
-    LZ4_streamDecode_t lz4_streamDecode_bdoy;
 public:
+    void* GetResourceData(uint_fast32_t guid, size_t* size);
 };
 
 
