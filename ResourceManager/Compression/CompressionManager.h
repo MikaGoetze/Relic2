@@ -103,7 +103,7 @@ public:
 template<typename T>
 T* CompressionManager::LoadResource(uint_fast32_t guid)
 {
-    currentFile = fopen(currentRPACK.c_str(), "rb");
+    currentFile = fopen(currentRPACK.c_str(), "rb+");
     if(fileTable == nullptr)
         ReadFileTable();
 
@@ -119,7 +119,7 @@ T* CompressionManager::LoadResource(uint_fast32_t guid)
 
     T* t = new T();
 
-    size_t ftOffset = sizeof(Pair) * fileTable->lut_size + sizeof(*fileTable);
+    size_t ftOffset = sizeof(Pair) * fileTable->lut_size + sizeof(*fileTable) + sizeof(Metadata);
     SeekBin(pair->offset + (ftOffset), SEEK_SET);
     ReadBin(t, sizeof(*t));
     return t;
