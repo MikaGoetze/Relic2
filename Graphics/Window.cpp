@@ -48,7 +48,7 @@ Window::Window(int width, int height, std::string title, bool windowed, int moni
 
         if (monitor >= monitorCount)
         {
-            Logger::Log("[Window] Monitor index out of range. Using default monitor.");
+            Logger::Log(1, "[Window] Monitor index out of range. Using default monitor.");
             monitor = 0;
         }
 
@@ -67,7 +67,8 @@ Window::Window(std::string title, int monitor)
 
     if (monitor >= monitorCount)
     {
-        Logger::Log("[Window] Monitor index out of range. Using default monitor.");
+        Logger::Log(1, "[Window] Monitor index out of range : ", std::to_string(monitor).data(),
+                    ". Using default monitor.");
         monitor = 0;
     }
 

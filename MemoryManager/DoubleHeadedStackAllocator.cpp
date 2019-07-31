@@ -17,7 +17,7 @@ void *Relic::DoubleHeadedStackAllocator::Allocate(uint32_t size_bytes, bool top)
     //Make sure we have enough memory
     if(current_marker_top - current_marker_bottom < size_bytes)
     {
-        Logger::Log("[DoubleHeadedStackAllocator] Failed to allocate memory for object.");
+        Logger::Log(1, "[DoubleHeadedStackAllocator] Failed to allocate memory for object.");
         return nullptr;
     }
 
@@ -42,7 +42,8 @@ void Relic::DoubleHeadedStackAllocator::FreeToMarker(Relic::DoubleHeadedStackAll
     //Check that the marker we're resetting to makes sense
     if( (top && marker <= current_marker_bottom) || (!top && marker >= current_marker_top))
     {
-        Logger::Log("[DoubleHeadedStackAllocator] Resetting to marker attempted to reset head into other head's space. Not rolling back...");
+        Logger::Log(1, "[DoubleHeadedStackAllocator] Resetting to marker attempted to reset head into other head's "
+                       "space. Not rolling back...");
         return;
     }
 

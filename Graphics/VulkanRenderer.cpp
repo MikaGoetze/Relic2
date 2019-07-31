@@ -4,6 +4,7 @@
 
 #include <GLFW/glfw3.h>
 #include <Debugging/Logger.h>
+#include <cstring>
 #include "VulkanRenderer.h"
 
 void VulkanRenderer::Initialise()
@@ -39,20 +40,51 @@ void VulkanRenderer::CreateInstance()
 
     glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
+    //Confirm that all extensions are available.
+    for (uint32_t i = 0; i < glfwExtensionCount; i++)
+    {
+        if (!ExtensionSupported(glfwExtensions[i]))
+        {
+            Logger::Log(2, "[VulkanRenderer] Extension not available:", glfwExtensions[i]);
+            return;
+        }
+    }
+
     instanceCreateInfo.enabledExtensionCount = glfwExtensionCount;
     instanceCreateInfo.ppEnabledExtensionNames = glfwExtensions;
     instanceCreateInfo.enabledLayerCount = 0;
 
     if (vkCreateInstance(&instanceCreateInfo, nullptr, &instance) != VK_SUCCESS)
     {
-        Logger::Log("[VulkanRenderer] Failed to create instance...");
+        Logger::Log(1, "[VulkanRenderer] Failed to create instance...");
     }
-    Logger::Log("[VulkanRenderer] Created instance successfully.");
+    Logger::Log(1, "[VulkanRenderer] Created instance successfully.");
 }
 
 VulkanRenderer::VulkanRenderer()
 {
     instance = VkInstance{};
+    supportedExtensionCount = 0;
+    supportedExtensions = nullptr;
+}
+
+bool VulkanRenderer::ExtensionSupported(const char *extensionName)
+{
+    if (supportedExtensions == nullptr)
+    {
+        //Get extension count first
+        vkEnumerateInstanceExtensionProperties(nullptr, &supportedExtensionCount, nullptr);
+        supportedExtensions = new VkExtensionProperties[supportedExtensionCount];
+        //Then fill the array
+        vkEnumerateInstanceExtensionProperties(nullptr, &supportedExtensionCount, supportedExtensions);
+    }
+
+    Logger::Log(2, "[VulkanRenderer] Checking support for: ", extensionName);
+    for (uint32_t i = 0; i < supportedExtensionCount; i++)
+    {
+        if (strcmp(extensionName, supportedExtensions[i].extensionName) == 0) return true;
+    }
+    return false;
 }
 
 #pragma clang diagnostic pop

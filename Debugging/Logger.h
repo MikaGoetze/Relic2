@@ -6,12 +6,12 @@
 #define RELIC_2_0_LOGGER_H
 
 
-#include <string>
+#include <cstdarg>
 
 class Logger
 {
 public:
-    static void Log(std::string message);
+    static void Log(int messageCount, ...);
 };
 
 

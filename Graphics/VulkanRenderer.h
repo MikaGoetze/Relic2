@@ -22,6 +22,11 @@ private:
     VkInstance instance;
 
     void CreateInstance();
+
+    bool ExtensionSupported(const char *extensionName);
+
+    VkExtensionProperties *supportedExtensions;
+    uint32_t supportedExtensionCount;
 };
 
 

@@ -8,30 +8,30 @@
 void CompressionManager::WriteInt(FILE *fp, int i)
 {
     size_t written = fwrite(&i, sizeof(i), 1, fp);
-    if(written != 1) Logger::Log("[CompressionManager] [ERR} Failed to write int.");
+    if (written != 1) Logger::Log(1, "[CompressionManager] [ERR} Failed to write int.");
 }
 
 void CompressionManager::WriteBin(FILE *fp, const void *bytes, size_t size)
 {
     size_t written = fwrite(bytes, 1, size, fp);
-    if(written != size) Logger::Log("[CompressionManager] [ERR} Failed to write bytes.");
+    if (written != size) Logger::Log(1, "[CompressionManager] [ERR} Failed to write bytes.");
 }
 
 void CompressionManager::ReadInt(FILE *fp, int *i)
 {
     size_t read = fread(i, sizeof(*i), 1, fp);
-    if(read != 1) Logger::Log("[CompressionManager] [ERR] Failed to read int.");
+    if (read != 1) Logger::Log(1, "[CompressionManager] [ERR] Failed to read int.");
 }
 
 void CompressionManager::ReadBin(FILE *fp, void *bytes, size_t size)
 {
     size_t read = fread(bytes, 1, size, fp);
-    if(read != size) Logger::Log("[CompressionManager] [ERR] Failed to read bytes.");
+    if (read != size) Logger::Log(1, "[CompressionManager] [ERR] Failed to read bytes.");
 }
 
 void CompressionManager::SeekBin(FILE *fp, long offset, int origin)
 {
-    if(fseek(fp, offset, origin)) Logger::Log("[CompressionManager] [ERR} Failed to seek file.");
+    if (fseek(fp, offset, origin)) Logger::Log(1, "[CompressionManager] [ERR} Failed to seek file.");
 }
 
 CompressionManager::Metadata *CompressionManager::ReadMetadata(FILE *fp)

@@ -5,7 +5,14 @@
 #include <iostream>
 #include "Logger.h"
 
-void Logger::Log(std::string message)
+void Logger::Log(int messageCount, ...)
 {
-    std::cout << message << std::endl;
+    va_list args;
+    va_start(args, messageCount);
+    for (int i = 0; i < messageCount; i++)
+    {
+        std::cout << va_arg(args, char*);
+    }
+    std::cout << std::endl;
+    va_end(args);
 }

@@ -52,19 +52,24 @@ private:
     const uint_fast8_t version_number = 1;
     const uint_fast32_t block_bytes = 1024;
 
-    FILE* current_file;
-    struct FileTable* fileTable;
+    FILE *current_file{};
+    struct FileTable *fileTable{};
 
     //Read and write functions.
-    void WriteInt(FILE* fp, int i);
-    void WriteBin(FILE* fp, const void* bytes, size_t size);
-    void ReadInt(FILE* fp, int* i);
-    void ReadBin(FILE* fp, void* bytes, size_t size);
-    void SeekBin(FILE* fp, long offset, int origin);
+    static void WriteInt(FILE *fp, int i);
+
+    static void WriteBin(FILE *fp, const void *bytes, size_t size);
+
+    static void ReadInt(FILE *fp, int *i);
+
+    static void ReadBin(FILE *fp, void *bytes, size_t size);
+
+    static void SeekBin(FILE *fp, long offset, int origin);
 
     //Read and write metadata from files.
-    struct Metadata* ReadMetadata(FILE* fp);
-    void WriteMetadata(FILE* fp, const struct Metadata* metadata);
+    static struct Metadata *ReadMetadata(FILE *fp);
+
+    static void WriteMetadata(FILE *fp, const struct Metadata *metadata);
 
     void WriteFileTable(FILE* fp);
     void ReadFileTable(FILE* fp);
