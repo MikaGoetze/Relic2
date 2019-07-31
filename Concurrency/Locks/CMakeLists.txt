@@ -1,4 +1,4 @@
-target_sources(Relic_2_0 PRIVATE
+target_sources(Relic PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/ReentrantLock32.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/ReentrantLock32.h"
         "${CMAKE_CURRENT_SOURCE_DIR}/ScopedLock.h"
