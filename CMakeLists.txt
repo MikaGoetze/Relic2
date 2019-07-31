@@ -9,7 +9,7 @@ include_directories(~/Documents/vulkan-sdk/macOS/include)
 link_directories(/usr/local/lib)
 link_directories(~/Documents/vulkan-sdk/macOS/lib)
 
-add_executable(Relic main.cpp Graphics/Window.cpp Graphics/Window.h)
+add_executable(Relic main.cpp)
 
 add_subdirectory(Concurrency)
 add_subdirectory(Core)
