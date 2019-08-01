@@ -5,22 +5,13 @@
 #include <GLFW/glfw3.h>
 #include <Debugging/Logger.h>
 #include <cstring>
+#include <vector>
 #include "VulkanRenderer.h"
-
-void VulkanRenderer::Initialise()
-{
-    CreateInstance();
-}
-
-void VulkanRenderer::Cleanup()
-{
-
-}
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "hicpp-signed-bitwise"
 
-void VulkanRenderer::CreateInstance()
+void VulkanRenderer::CreateInstance(bool enableValidationLayers)
 {
     VkApplicationInfo applicationInfo = {};
     applicationInfo.apiVersion = VK_API_VERSION_1_0;
@@ -48,11 +39,17 @@ void VulkanRenderer::CreateInstance()
             Logger::Log(2, "[VulkanRenderer] Extension not available:", glfwExtensions[i]);
             return;
         }
+        Logger::Log(2, "[VulkanRenderer] Found support for: ", glfwExtensions[i]);
     }
 
     instanceCreateInfo.enabledExtensionCount = glfwExtensionCount;
     instanceCreateInfo.ppEnabledExtensionNames = glfwExtensions;
     instanceCreateInfo.enabledLayerCount = 0;
+
+    std::vector<const char *> layers = {
+            "VK_LAYER_KHRONOS_validation"
+    };
+    if (enableValidationLayers) EnableValidationLayers(instanceCreateInfo, layers);
 
     if (vkCreateInstance(&instanceCreateInfo, nullptr, &instance) != VK_SUCCESS)
     {
@@ -61,11 +58,16 @@ void VulkanRenderer::CreateInstance()
     Logger::Log(1, "[VulkanRenderer] Created instance successfully.");
 }
 
-VulkanRenderer::VulkanRenderer()
+VulkanRenderer::VulkanRenderer(bool enableValidationLayers)
 {
     instance = VkInstance{};
     supportedExtensionCount = 0;
     supportedExtensions = nullptr;
+    supportedValidationLayers = nullptr;
+    supportedValidationLayersCount = 0;
+    enabledValidationLayers = new std::vector<const char *>();
+
+    CreateInstance(enableValidationLayers);
 }
 
 bool VulkanRenderer::ExtensionSupported(const char *extensionName)
@@ -79,12 +81,53 @@ bool VulkanRenderer::ExtensionSupported(const char *extensionName)
         vkEnumerateInstanceExtensionProperties(nullptr, &supportedExtensionCount, supportedExtensions);
     }
 
-    Logger::Log(2, "[VulkanRenderer] Checking support for: ", extensionName);
     for (uint32_t i = 0; i < supportedExtensionCount; i++)
     {
         if (strcmp(extensionName, supportedExtensions[i].extensionName) == 0) return true;
     }
     return false;
+}
+
+VulkanRenderer::~VulkanRenderer()
+{
+    delete supportedExtensions;
+    delete supportedValidationLayers;
+    delete enabledValidationLayers;
+    vkDestroyInstance(instance, nullptr);
+}
+
+bool VulkanRenderer::ValidationLayerSupported(const char *validationLayerName)
+{
+    if (supportedValidationLayers == nullptr)
+    {
+        vkEnumerateInstanceLayerProperties(&supportedValidationLayersCount, nullptr);
+        supportedValidationLayers = new VkLayerProperties[supportedValidationLayersCount];
+        vkEnumerateInstanceLayerProperties(&supportedValidationLayersCount, supportedValidationLayers);
+    }
+
+    for (uint32_t i = 0; i < supportedValidationLayersCount; i++)
+    {
+        if (strcmp(supportedValidationLayers[i].layerName, validationLayerName) == 0) return true;
+    }
+
+    return false;
+}
+
+void VulkanRenderer::EnableValidationLayers(VkInstanceCreateInfo &createInfo, const std::vector<const char *> &layers)
+{
+    for (auto &validationLayer : layers)
+    {
+        if (!ValidationLayerSupported(validationLayer))
+        {
+            Logger::Log(3, "[VulkanRenderer] Validation layer ", validationLayer, " is not supported.");
+            continue;
+        }
+        enabledValidationLayers->push_back(validationLayer);
+        Logger::Log(2, "[VulkanRenderer] Found support for layer: ", validationLayer);
+    }
+
+    createInfo.enabledLayerCount = enabledValidationLayers->size();
+    createInfo.ppEnabledLayerNames = enabledValidationLayers->data();
 }
 
 #pragma clang diagnostic pop

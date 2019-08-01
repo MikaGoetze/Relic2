@@ -34,9 +34,7 @@ void Relic::Initialise()
     glfwInit();
     window = new Window(800, 600, "Relic", true);
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    renderer = new VulkanRenderer();
-
-    renderer->Initialise();
+    renderer = new VulkanRenderer(true);
 }
 
 void Relic::GameLoop()
@@ -49,6 +47,7 @@ void Relic::GameLoop()
 
 void Relic::Cleanup()
 {
+    delete renderer;
     delete window;
     glfwTerminate();
 }

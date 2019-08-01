@@ -12,21 +12,37 @@
 class VulkanRenderer : public Renderer
 {
 public:
-    VulkanRenderer();
+    explicit VulkanRenderer(bool enableValidationLayers);
 
-    void Initialise() override;
+    ~VulkanRenderer();
 
-    void Cleanup() override;
 
 private:
     VkInstance instance;
 
-    void CreateInstance();
+    /// Create a Vulkan Instance
+    void CreateInstance(bool enableValidationLayers);
 
+    /// Check whether a vulkan instance extension is supported.
+    /// \param extensionName Name of the extension to query.
+    /// \return  Whether or not the extension is available.
     bool ExtensionSupported(const char *extensionName);
 
+    void EnableValidationLayers(VkInstanceCreateInfo &createInfo, const std::vector<const char *> &layers);
+
+    bool ValidationLayerSupported(const char *validationLayerName);
+
+    /// Cache of supported exteions.
     VkExtensionProperties *supportedExtensions;
+    /// Number of supported extensions currently cached.
     uint32_t supportedExtensionCount;
+
+    VkLayerProperties *supportedValidationLayers;
+    uint32_t supportedValidationLayersCount;
+
+
+    std::vector<const char *> *enabledValidationLayers;
+
 };
 
 

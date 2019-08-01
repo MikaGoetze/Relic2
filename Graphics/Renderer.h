@@ -5,13 +5,11 @@
 #ifndef RELIC_RENDERER_H
 #define RELIC_RENDERER_H
 
-
+/// Interface for creating render back ends.
 class Renderer
 {
 public:
-    virtual void Initialise() = 0;
 
-    virtual void Cleanup() = 0;
 };
 
 
