@@ -34,6 +34,7 @@ bool Window::ShouldClose() const
 
 Window::Window(int width, int height, std::string title, bool windowed, int monitor)
 {
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     windowWidth = width;
     windowHeight = height;
     windowTitle = std::move(title);
@@ -60,6 +61,7 @@ Window::Window(int width, int height, std::string title, bool windowed, int moni
 
 Window::Window(std::string title, int monitor)
 {
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     windowTitle = std::move(title);
 
     int monitorCount;

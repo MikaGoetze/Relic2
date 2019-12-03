@@ -4,6 +4,7 @@
 
 #include <Graphics/Window.h>
 #include <Graphics/VulkanRenderer.h>
+#include <Debugging/Logger.h>
 #include "Relic.h"
 
 Relic::Relic()
@@ -33,8 +34,7 @@ void Relic::Initialise()
 {
     glfwInit();
     window = new Window(800, 600, "Relic", true);
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    renderer = new VulkanRenderer(true);
+    renderer = new VulkanRenderer(window, true);
 }
 
 void Relic::GameLoop()

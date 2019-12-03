@@ -9,7 +9,7 @@
 
 #include <GLFW/glfw3.h>
 #include <Graphics/Window.h>
-#include <Graphics/Renderer.h>
+#include <Graphics/VulkanRenderer.h>
 
 class Relic
 {

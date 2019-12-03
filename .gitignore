@@ -1,2 +1,9 @@
 cmake-build-debug/
 .idea/
+CMakeFiles
+*.o
+Makefile
+cmake_install.cmake
+CMakeCache.txt
+Relic
+Relic.cbp
