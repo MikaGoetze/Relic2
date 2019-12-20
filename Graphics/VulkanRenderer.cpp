@@ -77,6 +77,8 @@ VulkanRenderer::VulkanRenderer(Window *window, bool enableValidation) : Renderer
     CreateLogicalDevice();
 
     CreateSwapChain();
+
+    CreateSwapchainImageViews();
 }
 
 bool VulkanRenderer::ExtensionSupported(const char *extensionName)
