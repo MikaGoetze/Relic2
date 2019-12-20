@@ -123,6 +123,8 @@ private:
 
     VkExtent2D SelectSwapChainExtent(const VkSurfaceCapabilitiesKHR &capabilities);
 
+    void CreateSwapchainImageViews();
+
     //Variables
 
     bool validationLayersEnabled;
@@ -162,6 +164,8 @@ private:
     std::vector<VkImage> swapchainImages;
     VkSurfaceFormatKHR swapchainImageFormat;
     VkExtent2D swapchainImageExtent;
+
+    std::vector<VkImageView> swapchainImageViews;
 };
 
 
