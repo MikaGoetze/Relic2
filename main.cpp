@@ -1,11 +1,13 @@
 #include <iostream>
 #include <ResourceManager/Compression/CompressionManager.h>
-#include <Core/Relic.h>
-
 
 int main()
 {
-    Relic relic;
-    relic.Start();
+    std::cout << "Hello, World!" << std::endl;
+
+    CompressionManager compressionManager;
+
+    compressionManager.Test();
+
     return 0;
 }
