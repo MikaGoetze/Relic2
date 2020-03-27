@@ -15,6 +15,9 @@ public:
 
     virtual ~Renderer() = 0;
 
+    virtual void Render() = 0;
+    virtual void FinishPendingRenderingOperations() = 0;
+
 protected:
     Window *window;
 };

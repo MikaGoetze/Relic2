@@ -12,6 +12,7 @@ class Logger
 {
 public:
     static void Log(int messageCount, ...);
+    static void Log(const char* message);
 };
 
 

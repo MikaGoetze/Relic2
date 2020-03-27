@@ -111,6 +111,10 @@ private:
     /// Create a surface.
     void CreateSurface();
 
+    void Render() override;
+
+    void FinishPendingRenderingOperations() override;
+
     bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
 
     void CreateSwapChain();
@@ -119,7 +123,7 @@ private:
 
     VkSurfaceFormatKHR SelectSwapChainSurfaceFormat(std::vector<VkSurfaceFormatKHR> &formats);
 
-    VkPresentModeKHR SelectSwapChainPresentMode(std::vector<VkPresentModeKHR> modes);
+    VkPresentModeKHR SelectSwapChainPresentMode(const std::vector<VkPresentModeKHR>& modes);
 
     VkExtent2D SelectSwapChainExtent(const VkSurfaceCapabilitiesKHR &capabilities);
 
@@ -143,14 +147,22 @@ private:
 
     VkDebugUtilsMessengerEXT debugMessenger;
 
-    VkSurfaceKHR surface;
+    VkSurfaceKHR surface{};
+    VkRenderPass renderPass{};
+    VkPipelineLayout pipelineLayout{};
+    VkPipeline graphicsPipeline{};
 
-    VkPhysicalDevice physicalDevice;
+    VkPhysicalDevice physicalDevice{};
+    std::vector<VkFramebuffer> swapchainFrameBuffers;
+    VkCommandPool commandPool{};
+    std::vector<VkCommandBuffer> commandBuffers;
 
-    VkDevice device;
+    VkDevice device{};
 
-    VkQueue graphicsQueue;
-    VkQueue presentationQueue;
+    VkQueue graphicsQueue{};
+    VkQueue presentationQueue{};
+
+    const int MAX_FRAMES_IN_FLIGHT = 2;
 
     const std::vector<const char *> layers = {
             "VK_LAYER_LUNARG_standard_validation"
@@ -160,12 +172,38 @@ private:
             VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
 
-    VkSwapchainKHR swapchain;
+    VkSwapchainKHR swapchain{};
     std::vector<VkImage> swapchainImages;
-    VkSurfaceFormatKHR swapchainImageFormat;
-    VkExtent2D swapchainImageExtent;
+    VkSurfaceFormatKHR swapchainImageFormat{};
+    VkExtent2D swapchainImageExtent{};
+
+    std::vector<VkSemaphore> imageAvailableSemaphores;
+    std::vector<VkSemaphore> renderFinishedSemaphores;
+    std::vector<VkFence> inFlightFences;
+    std::vector<VkFence> imagesInFlight;
+    size_t currentFrame = 0;
+
+    bool framebufferResized = false;
 
     std::vector<VkImageView> swapchainImageViews;
+
+    void CreateGraphicsPipeline();
+
+    void CreateRenderPass();
+
+    static void WindowResizedCallback(Window* window, int width, int height);
+
+    void CreateFrameBuffers();
+
+    void CreateCommandPool();
+
+    void CreateCommandBuffers();
+
+    void CreateSynchronisationObjects();
+
+    void RecreateSwapChain();
+
+    void CleanupSwapchain();
 };
 
 

@@ -10,6 +10,18 @@
 
 class Window
 {
+private:
+
+    int windowWidth;
+    int windowHeight;
+    std::string windowTitle;
+    GLFWwindow *window = nullptr;
+    typedef void (* WindowSizeCallbackFunction)(Window * window, int width, int height);
+    WindowSizeCallbackFunction sizeCallback;
+    void *userPointer;
+
+    static void WindowSizeChanged(GLFWwindow *window, int width, int height);
+
 public:
     /// Create a new window.
     /// \param width Width of the window (pixels).
@@ -40,29 +52,30 @@ public:
 
     /// Get the width of the window.
     /// \return The width of the window (pixels).
-    const int &GetWindowWidth() const;
+    [[nodiscard]] const int &GetWindowWidth() const;
 
     /// Get the height of the window.
     /// \return The height of the window (pixels).
-    const int &GetWindowHeight() const;
+    [[nodiscard]] const int &GetWindowHeight() const;
 
     /// Get the title of the window.
     /// \return Title of the window.
-    const std::string &GetWindowTitle() const;
+    [[nodiscard]] const std::string &GetWindowTitle() const;
 
     /// Get the internal representation of the window.
     /// \return The GLFW3 representation.
-    GLFWwindow *GetInternalWindow() const;
+    [[nodiscard]] GLFWwindow *GetInternalWindow() const;
 
     /// Whether or not the window has requested to be closed.
     /// \return Whether or not it should be closed.
-    bool ShouldClose() const;
+    [[nodiscard]] bool ShouldClose() const;
 
-private:
-    int windowWidth;
-    int windowHeight;
-    std::string windowTitle;
-    GLFWwindow *window = nullptr;
+    void RegisterWindowSizeChangedCallback(WindowSizeCallbackFunction callback);
+    void SetUserPointer(void* pointer);
+
+    void *GetUserPointer();
+
+    bool IsMinimized();
 };
 
 

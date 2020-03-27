@@ -42,7 +42,11 @@ void Relic::GameLoop()
     while (!window->ShouldClose() && isRunning)
     {
         glfwPollEvents();
+
+        DrawFrame();
     }
+
+    renderer->FinishPendingRenderingOperations();
 }
 
 void Relic::Cleanup()
@@ -50,4 +54,9 @@ void Relic::Cleanup()
     delete renderer;
     delete window;
     glfwTerminate();
+}
+
+void Relic::DrawFrame()
+{
+    renderer->Render();
 }

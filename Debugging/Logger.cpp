@@ -16,3 +16,8 @@ void Logger::Log(int messageCount, ...)
     std::cout << std::endl;
     va_end(args);
 }
+
+void Logger::Log(const char *message)
+{
+    Log(1, message);
+}

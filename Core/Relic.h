@@ -32,6 +32,8 @@ private:
     Window *window;
     Renderer *renderer;
     bool isRunning;
+
+    void DrawFrame();
 };
 
 
