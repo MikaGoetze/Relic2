@@ -3,6 +3,7 @@
 //
 
 #define GLFW_INCLUDE_VULKAN
+#define VMA_IMPLEMENTATION
 
 #include <GLFW/glfw3.h>
 #include <Debugging/Logger.h>
@@ -87,6 +88,10 @@ VulkanRenderer::VulkanRenderer(Window *window, bool enableValidation) : Renderer
     }
 
     CreateLogicalDevice();
+
+    //Create the allocator
+    CreateAllocator();
+
     CreateSwapChain();
     CreateSwapchainImageViews();
     CreateRenderPass();
@@ -127,6 +132,8 @@ VulkanRenderer::~VulkanRenderer()
     }
 
     vkDestroyCommandPool(device, commandPool, nullptr);
+
+    vmaDestroyAllocator(allocator);
 
     delete supportedExtensions;
     delete supportedValidationLayers;
@@ -974,6 +981,19 @@ void VulkanRenderer::WindowResizedCallback(Window * window, int width, int heigh
 {
     auto* renderer = reinterpret_cast<VulkanRenderer*> (window->GetUserPointer());
     renderer->framebufferResized = true;
+}
+
+void VulkanRenderer::CreateAllocator()
+{
+    VmaAllocatorCreateInfo allocatorInfo = {};
+    allocatorInfo.device = device;
+    allocatorInfo.physicalDevice = physicalDevice;
+    allocatorInfo.instance = instance;
+
+    if(vmaCreateAllocator(&allocatorInfo, &allocator) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to create VMA Allocator.");
+    }
 }
 
 #pragma clang diagnostic pop

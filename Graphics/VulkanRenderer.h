@@ -8,8 +8,10 @@
 
 #include <vulkan/vulkan.h>
 #include "Renderer.h"
+#include "vk_mem_alloc.h"
 #include <optional>
 #include <vector>
+#include "OpenFBX/ofbx.h"
 
 struct QueueFamilyIndices
 {
@@ -185,6 +187,8 @@ private:
 
     bool framebufferResized = false;
 
+    VmaAllocator allocator;
+
     std::vector<VkImageView> swapchainImageViews;
 
     void CreateGraphicsPipeline();
@@ -204,6 +208,8 @@ private:
     void RecreateSwapChain();
 
     void CleanupSwapchain();
+
+    void CreateAllocator();
 };
 
 

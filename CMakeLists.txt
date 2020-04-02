@@ -17,12 +17,12 @@ add_subdirectory(Debugging)
 add_subdirectory(MemoryManager)
 add_subdirectory(ResourceManager)
 add_subdirectory(Graphics)
+add_subdirectory(Importers)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR})
 
 find_package(Vulkan REQUIRED)
 find_package(glfw3 REQUIRED)
-
 include_directories(.)
 
 #Old stuff
@@ -34,5 +34,6 @@ include_directories(.)
 
 include_directories(${Vulkan_INCLUDE_DIRS})
 include_directories(${GLFW_INCLUDE_DIR})
-target_link_libraries(Relic ${Vulkan_LIBRARIES} ${GLFW_LIBRARY})
+include_directories($ENV{GLM_PATH})
+target_link_libraries(Relic ${Vulkan_LIBRARIES} ${GLFW_LIBRARY} )
 

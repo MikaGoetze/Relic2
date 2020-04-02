@@ -60,7 +60,7 @@ void CompressionManager::WriteFileTable()
 {
     Metadata meta{};
     meta.version_number = version_number;
-    meta.lut_size = sizeof(Pair) * fileTable->lut_size;
+    meta.lut_size = sizeof(LUTEntry) * fileTable->lut_size;
     meta.filetable_size = sizeof(*fileTable);
 
     //Write the metadata to file
@@ -77,12 +77,12 @@ void CompressionManager::ReadFileTable()
     Metadata *meta = ReadMetadata();
     if (meta->version_number != version_number)
     {
-        Logger::Log("[CompressionManager] [ERR} RPACK is of the wrong version. Cannot read.");
+        Logger::Log("[CompressionManager] [ERR] RPACK is of the wrong version. Cannot read.");
         return;
     }
 
     //Now we read the file table
-    fileTable = new FileTable(meta->lut_size / sizeof(Pair));
+    fileTable = new FileTable(meta->lut_size / sizeof(LUTEntry));
 
     ReadBin(fileTable, meta->filetable_size);
     ReadBin(fileTable->lut, meta->lut_size);
@@ -91,24 +91,24 @@ void CompressionManager::ReadFileTable()
 void CompressionManager::Test()
 {
     int a = 4;
-    Pair b{10, 10};
-    float c = 12.4;
+//    LUTEntry b{10, 10};
+//    float c = 12.4;
 
     SetRPACK("test.rpack");
 
-    AddResource(&a, sizeof(a), 0);
-    AddResource(&b, sizeof(b), 1);
-    AddResource(&c, sizeof(c), 2);
+    AddResource(&a, sizeof(a), 0, REL_TYPE_NONE);
+//    AddResource(&b, sizeof(b), 1, REL_STRUCTURE_TYPE_MESH);
+//    AddResource(&c, sizeof(c), 2, REL_STRUCTURE_TYPE_MESH);
 
     WriteRPACK();
 
     printf("%i\n", *LoadResource<int>(0));
-    Pair *p = LoadResource<Pair>(1);
-    printf("%i, %i\n", static_cast<int>(p->offset), static_cast<int>(p->guid));
-    printf("%f\n", *LoadResource<float>(2));
+    LUTEntry *p = LoadResource<LUTEntry>(1);
+//    printf("%i, %i\n", static_cast<int>(p->offset), static_cast<int>(p->guid));
+//    printf("%f\n", *LoadResource<float>(2));
 }
 
-void CompressionManager::SetRPACK(std::string target)
+void CompressionManager::SetRPACK(std::string target, bool deleteResources)
 {
     //If there was a previously loaded RPACK and it needs a write, let's write it now.
     if (!currentRPACK.empty() && ::strcmp(target.c_str(), currentRPACK.c_str()) != 0 && needsWrite)
@@ -118,15 +118,18 @@ void CompressionManager::SetRPACK(std::string target)
 
     currentRPACK = target;
 
-    //Clear and reset current resources.
-    for (auto &currentResource : *currentResources)
+    if (deleteResources)
     {
-        delete currentResource;
+        for (auto &currentResource : *currentResources)
+        {
+            delete currentResource;
+        }
     }
+
     currentResources->clear();
 }
 
-void CompressionManager::AddResource(void *data, size_t dataSize, uint_fast32_t guid)
+void CompressionManager::AddResource(void *data, size_t dataSize, uint_fast32_t guid, RelicType type)
 {
     if (currentRPACK.empty())
     {
@@ -137,7 +140,17 @@ void CompressionManager::AddResource(void *data, size_t dataSize, uint_fast32_t 
     resource->data = data;
     resource->dataSize = dataSize;
     resource->guid = guid;
+    resource->type = type;
 
+    //Make sure we remove any existing copies.
+    for(size_t i = 0; i < currentResources->size(); i++)
+    {
+        if(currentResources->at(i)->guid == guid)
+        {
+            currentResources->erase(currentResources->begin() + i);
+            break;
+        }
+    }
     currentResources->push_back(resource);
     needsWrite = true;
 }
@@ -160,10 +173,12 @@ void CompressionManager::WriteRPACK()
 
     //Go through each loaded resource and add it to the file table.
     uint_fast32_t offset = 0;
-    for (unsigned long i = 0; i < currentResources->size(); i++)
+    for (size_t i = 0; i < currentResources->size(); i++)
     {
         fileTable->lut[i].offset = offset;
+        fileTable->lut[i].uncompressedSize = currentResources->at(i)->dataSize;
         fileTable->lut[i].guid = currentResources->at(i)->guid;
+        fileTable->lut[i].type = currentResources->at(i)->type;
         offset += currentResources->at(i)->compressedSize;
     }
 
@@ -209,7 +224,7 @@ CompressionManager::CompressionManager()
     fileTable = nullptr;
 }
 
-CompressionManager::Pair *CompressionManager::SearchForGUID(uint_fast32_t guid, size_t *index)
+CompressionManager::LUTEntry *CompressionManager::SearchForGUID(uint_fast32_t guid, size_t *index)
 {
     for (int i = 0; i < fileTable->lut_size; i++)
     {
@@ -257,14 +272,70 @@ CompressionManager::Decompress(void *bytes, void *decompressedBytes, size_t comp
     }
 }
 
-CompressionManager::Pair::Pair(uint_fast32_t guid, size_t offset)
+bool CompressionManager::HasRPACKLoaded()
+{
+    return !currentRPACK.empty();
+}
+
+void CompressionManager::UnloadRPACK(bool deleteResource)
+{
+    SetRPACK("", deleteResource);
+}
+
+void *CompressionManager::LoadResourceBinary(uint_fast32_t guid, size_t &resourceSize, RelicType & type)
+{
+    currentFile = fopen(currentRPACK.c_str(), "rb+");
+    if (fileTable == nullptr)
+        ReadFileTable();
+
+    //If we failed to read the file table
+    if (fileTable == nullptr) return nullptr;
+
+    //Now we look up the requested resource
+    size_t index;
+    LUTEntry *pair = SearchForGUID(guid, &index);
+    if(index == fileTable->lut_size - 1)
+    {
+        //This should never happen, last element in a filetable is blank.
+        return nullptr;
+    }
+
+    //If we didn't find it, then it's not in this RPACK
+    if (pair == nullptr)
+    {
+        Logger::Log("[CompressionManager] [WRN] Could not find resource...");
+        return nullptr;
+    }
+
+    size_t compressedSize = fileTable->lut[index + 1].offset - fileTable->lut[index].offset;
+    size_t ftOffset = sizeof(LUTEntry) * fileTable->lut_size + sizeof(*fileTable) + sizeof(Metadata);
+    type = fileTable->lut[index].type;
+
+    char *compressed = new char[compressedSize];
+
+    SeekBin(static_cast<long>(pair->offset + (ftOffset)), SEEK_SET);
+    ReadBin(compressed, compressedSize);
+
+    resourceSize = fileTable->lut[index].uncompressedSize;
+    auto * data = new unsigned char[resourceSize];
+
+    Decompress(compressed, data, compressedSize, resourceSize);
+
+    return data;
+}
+
+CompressionManager::LUTEntry::LUTEntry(uint_fast32_t guid, size_t offset, size_t uncompressedSize, RelicType type)
 {
     this->guid = guid;
     this->offset = offset;
+    this->uncompressedSize = uncompressedSize;
+    this->type = type;
 }
 
-CompressionManager::Pair::Pair()
+CompressionManager::LUTEntry::LUTEntry()
 {
     guid = 0;
     offset = 0;
+    uncompressedSize = 0;
+    type = REL_TYPE_NONE;
 }

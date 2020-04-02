@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 #include <Debugging/Logger.h>
+#include <Core/RelicStruct.h>
+#include <typeindex>
 
 
 class CompressionManager
@@ -23,14 +25,16 @@ private:
         uint_fast8_t version_number;
     };
 
-    struct Pair
+    struct LUTEntry
     {
-        Pair();
+        LUTEntry();
 
-        Pair(uint_fast32_t guid, size_t offset);
+        LUTEntry(uint_fast32_t guid, size_t offset, size_t uncompressedSize, RelicType type);
 
         size_t offset;
+        size_t uncompressedSize;
         uint_fast32_t guid;
+        RelicType type;
     };
 
     struct Resource
@@ -40,16 +44,17 @@ private:
         size_t dataSize;
         size_t compressedSize;
         uint_fast32_t guid;
+        RelicType type;
     };
 
     struct FileTable
     {
         size_t lut_size;
-        Pair *lut;
+        LUTEntry *lut;
 
         explicit FileTable(size_t number_of_elements)
         {
-            lut = new Pair[number_of_elements];
+            lut = new LUTEntry[number_of_elements];
             lut_size = number_of_elements;
         }
 
@@ -61,11 +66,11 @@ private:
 
 
     //Keep track of the version used to encode it (in case of changes)
-    const uint_fast8_t version_number = 2;
+    const uint_fast8_t version_number = 3;
 
     FILE *currentFile;
     FileTable *fileTable;
-    std::string currentRPACK;
+    std::string currentRPACK = "";
     std::vector<Resource *> *currentResources;
     bool needsWrite = false;
 
@@ -104,7 +109,7 @@ private:
     void ReadFileTable();
 
     //Search through file table
-    Pair *SearchForGUID(uint_fast32_t guid, size_t *index = 0);
+    LUTEntry *SearchForGUID(uint_fast32_t guid, size_t *index = 0);
 
 public:
 
@@ -112,14 +117,20 @@ public:
 
     ~CompressionManager();
 
-    void SetRPACK(std::string target);
+    void SetRPACK(std::string target, bool deleteResources = false);
 
-    void AddResource(void *data, size_t dataSize, uint_fast32_t guid);
+    void AddResource(void *data, size_t dataSize, uint_fast32_t guid, RelicType type);
 
     void WriteRPACK();
 
+    void UnloadRPACK(bool deleteResource = false);
+
+    bool HasRPACKLoaded();
+
     template<typename T>
     T *LoadResource(uint_fast32_t guid);
+
+    void *LoadResourceBinary(uint_fast32_t guid, size_t &resourceSize, RelicType & type);
 
     void Test();
 };
@@ -137,7 +148,7 @@ T *CompressionManager::LoadResource(uint_fast32_t guid)
 
     //Now we look up the requested resource
     size_t index;
-    Pair *pair = SearchForGUID(guid, &index);
+    LUTEntry *pair = SearchForGUID(guid, &index);
     if(index == fileTable->lut_size - 1)
     {
         //This should never happen, last element in a filetable is blank.
@@ -153,7 +164,7 @@ T *CompressionManager::LoadResource(uint_fast32_t guid)
 
     T *t = new T();
     size_t compressedSize = fileTable->lut[index + 1].offset - fileTable->lut[index].offset;
-    size_t ftOffset = sizeof(Pair) * fileTable->lut_size + sizeof(*fileTable) + sizeof(Metadata);
+    size_t ftOffset = sizeof(LUTEntry) * fileTable->lut_size + sizeof(*fileTable) + sizeof(Metadata);
 
     if (compressedSize != sizeof(T))
     {
