@@ -12,6 +12,7 @@
 #include <optional>
 #include <vector>
 #include "OpenFBX/ofbx.h"
+#include "Model.h"
 
 struct QueueFamilyIndices
 {
@@ -210,6 +211,8 @@ private:
     void CleanupSwapchain();
 
     void CreateAllocator();
+
+    void CreateVertexBuffer(Mesh & mesh);
 };
 
 

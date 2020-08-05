@@ -17,3 +17,10 @@ void IImporter::RegisterImporter(RelicType type, IImporterGetter getter)
 {
     registry[type] = getter;
 }
+
+void IImporter::ReadBin(void *data, void *dest, size_t &offset, size_t size)
+{
+    memcpy(dest, (char*) data + offset, size);
+    offset += size;
+}
+

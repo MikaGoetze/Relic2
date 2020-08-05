@@ -22,10 +22,11 @@ private:
 public:
     template<typename T>
     T * GetSimpleResourceData(uint_fast32_t guid);
-    void * GetResourceData(uint_fast64_t guid);
+    void * GetResourceData(uint_fast32_t guid, bool forceReload = false);
     bool IsResourceLoaded(uint_fast32_t guid);
     void SetResourceData(uint_fast32_t guid, RelicType type, size_t size, void *data, bool write = true);
     void SetRPACK(std::string rpack, bool deleteResources = false);
+    void WriteRPACK();
 
     static ResourceManager * GetInstance();
 

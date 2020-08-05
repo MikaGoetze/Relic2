@@ -98,6 +98,9 @@ VulkanRenderer::VulkanRenderer(Window *window, bool enableValidation) : Renderer
     CreateGraphicsPipeline();
     CreateFrameBuffers();
     CreateCommandPool();
+    //TODO: Temp
+    Mesh * mesh = new Mesh();
+    CreateVertexBuffer(*mesh);
     CreateCommandBuffers();
     CreateSynchronisationObjects();
 }
@@ -625,10 +628,15 @@ void VulkanRenderer::CreateGraphicsPipeline()
 
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageCreateInfo, fragShaderStageCreateInfo};
 
+    auto bindingDescription = GetVertexInputBindingDescription();
+    auto attributeDescriptions = GetAttributeDescriptions();
+
     VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount = 0;
-    vertexInputInfo.vertexAttributeDescriptionCount = 0;
+    vertexInputInfo.vertexBindingDescriptionCount = 1;
+    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -996,4 +1004,12 @@ void VulkanRenderer::CreateAllocator()
     }
 }
 
-#pragma clang diagnostic pop
+void VulkanRenderer::CreateVertexBuffer(Mesh& mesh)
+{
+    VkBufferCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    createInfo.size = sizeof(Vertex) * mesh.vertexCount;
+    createInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+}
+

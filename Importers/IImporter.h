@@ -17,6 +17,10 @@ class IImporter
 {
 private:
     static std::map<RelicType, IImporterGetter> registry;
+
+protected:
+    static void ReadBin(void* data, void* dest, size_t& offset, size_t size);
+
 public:
     virtual GUID ImportResource(const std::string & filePath) = 0;
     virtual void * Deserialize(void* data, size_t dataSize) = 0;

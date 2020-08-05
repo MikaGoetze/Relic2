@@ -4,28 +4,29 @@
 
 #include "ResourceManager.h"
 
+#include <utility>
+
 void ResourceManager::SetResourceData(uint_fast32_t guid, RelicType type, size_t size, void *data, bool write)
 {
-    if(!manager.HasRPACKLoaded())
+    if (!manager.HasRPACKLoaded())
     {
         Logger::Log("[ResourceManager] Please set an RPACK before trying to set resource data.");
         return;
     }
 
     //TODO: Batch this up
-    IImporter * importer = IImporter::GetImporterForType(type);
-    if(importer == nullptr)
+    IImporter *importer = IImporter::GetImporterForType(type);
+    if (importer == nullptr)
     {
         manager.AddResource(data, size, guid, type);
-    }
-    else
+    } else
     {
         size_t serializedDataSize;
-        void * serializedData = importer->Serialize(data, serializedDataSize);
-        manager.AddResource(serializedData, serializedDataSize, guid, type);
+        void *serializedData = importer->Serialize(data, serializedDataSize);
+        if (serializedData != nullptr) manager.AddResource(serializedData, serializedDataSize, guid, type);
     }
 
-    if(write) manager.WriteRPACK();
+    if (write) manager.WriteRPACK();
 
     resources.insert_or_assign(guid, data);
 }
@@ -45,22 +46,24 @@ ResourceManager::ResourceManager()
     instance = this;
 }
 
-void *ResourceManager::GetResourceData(uint_fast64_t guid)
+void *ResourceManager::GetResourceData(uint_fast32_t guid, bool forceReload)
 {
-    auto resource = resources.find(guid);
-    if(resource != resources.end())
+    if (!forceReload)
     {
-        return resource->second;
+        auto resource = resources.find(guid);
+        if (resource != resources.end())
+        {
+            return resource->second;
+        }
     }
-
 
     size_t resourceSize;
     RelicType type = REL_TYPE_NONE;
-    void* data = manager.LoadResourceBinary(guid, resourceSize, type);
+    void *data = manager.LoadResourceBinary(guid, resourceSize, type);
 
     //Now we need to import the binary data.
-    IImporter * importer = IImporter::GetImporterForType(type);
-    if(importer == nullptr)
+    IImporter *importer = IImporter::GetImporterForType(type);
+    if (importer == nullptr)
     {
         //Then we assume it's just raw data.
         Logger::Log(3, "[ResourceManager] [WRN] Could not find importer for type ", std::to_string(type).c_str(), " assuming no import is needed.");
@@ -68,7 +71,7 @@ void *ResourceManager::GetResourceData(uint_fast64_t guid)
     }
 
     Logger::Log(std::to_string(resourceSize).c_str());
-    Logger::Log(type);
+    Logger::Log(std::to_string(type).c_str());
 
 
     return importer->Deserialize(data, resourceSize);
@@ -81,7 +84,12 @@ ResourceManager::~ResourceManager()
 
 void ResourceManager::SetRPACK(std::string rpack, bool deleteResources)
 {
-    manager.SetRPACK(rpack, deleteResources);
+    manager.SetRPACK(std::move(rpack), deleteResources);
 }
 
-ResourceManager * ResourceManager::instance;
+void ResourceManager::WriteRPACK()
+{
+    manager.WriteRPACK();
+}
+
+ResourceManager *ResourceManager::instance;
