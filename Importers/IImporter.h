@@ -16,7 +16,9 @@ typedef class IImporter * (*IImporterGetter)();
 class IImporter
 {
 private:
-    static std::map<RelicType, IImporterGetter> registry;
+    //Find out if there's a better way to do this without having to make this a function
+    //without relying upon static initialisation to go in a certain order.
+    static std::map<RelicType, IImporterGetter> &registry();
 
 protected:
     static void ReadBin(void* data, void* dest, size_t& offset, size_t size);

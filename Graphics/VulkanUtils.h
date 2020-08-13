@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <glm/vec3.hpp>
 #include <Graphics/Model.h>
+#include <array>
 
 VkShaderModule CreateShaderModule(const std::vector<char>& code, const VkDevice& device)
 {
