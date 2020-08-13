@@ -4,14 +4,14 @@
 
 #include "StackAllocator.h"
 
-Relic::StackAllocator::StackAllocator(uint32_t stack_size_bytes)
+StackAllocator::StackAllocator(uint32_t stack_size_bytes)
 {
     stack_base = (Marker) new char[stack_size_bytes];
     stack_top = stack_base + stack_size_bytes;
     current_marker = stack_base;
 }
 
-void *Relic::StackAllocator::Allocate(uint32_t size_bytes)
+void *StackAllocator::Allocate(uint32_t size_bytes)
 {
     //Make sure we have enough memory to service the request
     if(stack_top - current_marker < size_bytes)
@@ -27,29 +27,29 @@ void *Relic::StackAllocator::Allocate(uint32_t size_bytes)
     return reinterpret_cast<void *>(allocated_base);
 }
 
-Relic::StackAllocator::Marker Relic::StackAllocator::GetMarker()
+StackAllocator::Marker StackAllocator::GetMarker()
 {
     return current_marker;
 }
 
-void Relic::StackAllocator::FreeToMarker(Relic::StackAllocator::Marker marker)
+void StackAllocator::FreeToMarker(StackAllocator::Marker marker)
 {
     //We just put the marker back and don't bother actually clearing anything.
     current_marker = marker;
 }
 
-void Relic::StackAllocator::Clear()
+void StackAllocator::Clear()
 {
     current_marker = stack_base;
 }
 
-uint32_t Relic::StackAllocator::Size()
+uint32_t StackAllocator::Size()
 {
     //Return the remaining size
     return (uint32_t) (stack_top - current_marker);
 }
 
-uint32_t Relic::StackAllocator::Capacity()
+uint32_t StackAllocator::Capacity()
 {
     return (uint32_t) (stack_top - stack_base);
 }

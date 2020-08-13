@@ -4,7 +4,7 @@
 
 #include "DoubleHeadedStackAllocator.h"
 
-Relic::DoubleHeadedStackAllocator::DoubleHeadedStackAllocator(uint32_t stack_size_bytes)
+DoubleHeadedStackAllocator::DoubleHeadedStackAllocator(uint32_t stack_size_bytes)
 {
     stack_base = (Marker) new char[stack_size_bytes];
     stack_top = stack_base + stack_size_bytes;
@@ -12,7 +12,7 @@ Relic::DoubleHeadedStackAllocator::DoubleHeadedStackAllocator(uint32_t stack_siz
     current_marker_top = stack_top;
 }
 
-void *Relic::DoubleHeadedStackAllocator::Allocate(uint32_t size_bytes, bool top)
+void *DoubleHeadedStackAllocator::Allocate(uint32_t size_bytes, bool top)
 {
     //Make sure we have enough memory
     if(current_marker_top - current_marker_bottom < size_bytes)
@@ -32,12 +32,12 @@ void *Relic::DoubleHeadedStackAllocator::Allocate(uint32_t size_bytes, bool top)
 }
 
 
-Relic::DoubleHeadedStackAllocator::Marker Relic::DoubleHeadedStackAllocator::GetMarker(bool top)
+DoubleHeadedStackAllocator::Marker DoubleHeadedStackAllocator::GetMarker(bool top)
 {
     return top ? current_marker_top : current_marker_bottom;
 }
 
-void Relic::DoubleHeadedStackAllocator::FreeToMarker(Relic::DoubleHeadedStackAllocator::Marker marker, bool top)
+void DoubleHeadedStackAllocator::FreeToMarker(DoubleHeadedStackAllocator::Marker marker, bool top)
 {
     //Check that the marker we're resetting to makes sense
     if( (top && marker <= current_marker_bottom) || (!top && marker >= current_marker_top))
@@ -50,18 +50,18 @@ void Relic::DoubleHeadedStackAllocator::FreeToMarker(Relic::DoubleHeadedStackAll
     (top ? current_marker_top : current_marker_bottom) = marker;
 }
 
-void Relic::DoubleHeadedStackAllocator::Clear()
+void DoubleHeadedStackAllocator::Clear()
 {
     current_marker_top = stack_top;
     current_marker_bottom = stack_base;
 }
 
-uint32_t Relic::DoubleHeadedStackAllocator::Size()
+uint32_t DoubleHeadedStackAllocator::Size()
 {
     return (uint32_t) (current_marker_top - current_marker_bottom);
 }
 
-uint32_t Relic::DoubleHeadedStackAllocator::Capacity()
+uint32_t DoubleHeadedStackAllocator::Capacity()
 {
     return (uint32_t) (stack_top - stack_base);
 }
