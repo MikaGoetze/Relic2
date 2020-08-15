@@ -20,7 +20,7 @@ typedef struct Vertex
 
 typedef struct Mesh : RelicStruct
 {
-    const uint32_t sType = REL_STRUCTURE_TYPE_MESH;
+   uint32_t sType = REL_STRUCTURE_TYPE_MESH;
 
    Vertex * vertices;
    size_t vertexCount;
@@ -33,7 +33,7 @@ typedef struct Mesh : RelicStruct
 
 typedef struct Model : RelicStruct
 {
-    const RelicType sType = REL_STRUCTURE_TYPE_MODEL;
+    RelicType sType = REL_STRUCTURE_TYPE_MODEL;
     size_t meshCount;
     Mesh * meshes;
     GUID guid;

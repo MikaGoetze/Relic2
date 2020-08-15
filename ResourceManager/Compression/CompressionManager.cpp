@@ -102,7 +102,7 @@ void CompressionManager::Test()
 
     WriteRPACK();
 
-    printf("%i\n", *LoadResource<int>(0));
+
     LUTEntry *p = LoadResource<LUTEntry>(1);
 //    printf("%i, %i\n", static_cast<int>(p->offset), static_cast<int>(p->guid));
 //    printf("%f\n", *LoadResource<float>(2));

@@ -28,10 +28,88 @@ VkShaderModule CreateShaderModule(const std::vector<char>& code, const VkDevice&
     return module;
 }
 
+void CreateBuffer(VmaAllocator allocator, VkDeviceSize size, VkBufferUsageFlags usageFlags, VmaMemoryUsage memoryUsage, VkBuffer& buffer, VmaAllocation& allocation)
+{
+    VkBufferCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    createInfo.size = size;
+    createInfo.usage = usageFlags;
+    createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    VmaAllocationCreateInfo allocationCreateInfo = {};
+    allocationCreateInfo.usage = memoryUsage;
+
+    if(vmaCreateBuffer(allocator, &createInfo, &allocationCreateInfo, &buffer, &allocation, nullptr))
+    {
+        throw std::runtime_error("failed to create buffer");
+    }
+}
+
+void WriteToBufferDirect(VmaAllocator allocator, VmaAllocation allocation, void* data, size_t size)
+{
+    void *map;
+    if (vmaMapMemory(allocator, allocation, &map))
+    {
+        throw std::runtime_error("failed to map buffer");
+    }
+
+    memcpy(map, data, size);
+    vmaUnmapMemory(allocator, allocation);
+}
+
+void CopyBuffer(VkBuffer sourceBuffer, VkBuffer destBuffer, VkDeviceSize size, VkCommandPool commandPool, VkDevice device, VkQueue queue)
+{
+    VkCommandBufferAllocateInfo allocateInfo = {};
+    allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocateInfo.commandPool = commandPool;
+    allocateInfo.commandBufferCount = 1;
+
+    VkCommandBuffer commandBuffer;
+    vkAllocateCommandBuffers(device, &allocateInfo, &commandBuffer);
+
+    VkCommandBufferBeginInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    vkBeginCommandBuffer(commandBuffer, &info);
+
+    VkBufferCopy copy = {};
+    copy.srcOffset = 0;
+    copy.dstOffset = 0;
+    copy.size = size;
+    vkCmdCopyBuffer(commandBuffer, sourceBuffer, destBuffer, 1, &copy);
+
+    vkEndCommandBuffer(commandBuffer);
+
+    VkSubmitInfo submitInfo = {};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer;
+
+    vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(queue);
+
+    vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+}
+
+void WriteToBuffer(VmaAllocator allocator, VkBuffer buffer, void* data, size_t size, VkCommandPool commandPool, VkDevice device, VkQueue queue)
+{
+    VkBuffer stagingBuffer;
+    VmaAllocation stagingAllocation;
+
+    CreateBuffer(allocator, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, stagingBuffer, stagingAllocation);
+    WriteToBufferDirect(allocator, stagingAllocation, data, size);
+
+    CopyBuffer(stagingBuffer, buffer, size, commandPool, device, queue);
+
+    vmaDestroyBuffer(allocator, stagingBuffer, stagingAllocation);
+}
+
 VkVertexInputBindingDescription GetVertexInputBindingDescription()
 {
     VkVertexInputBindingDescription description = {};
-    description.stride = sizeof(glm::vec3);
+    description.stride = sizeof(Vertex);
     description.binding = 0;
     description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
     return description;

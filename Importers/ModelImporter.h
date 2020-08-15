@@ -12,9 +12,6 @@
 
 class ModelImporter : public IImporter
 {
-private:
-    static ModelImporter* instance;
-
 public:
     static ImporterRegistrar registrar;
 
@@ -24,7 +21,7 @@ public:
 
     void *Serialize(void *resource, size_t & totalSize) override;
 
-    static ModelImporter * GetInstance();
+    static ModelImporter * Instance();
 
     ModelImporter();
     ~ModelImporter();

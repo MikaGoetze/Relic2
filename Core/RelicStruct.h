@@ -16,7 +16,7 @@ enum RelicType
 
 struct RelicStruct
 {
-    const RelicType sType = REL_STRUCTURE_TYPE_INVALID;
+    RelicType sType = REL_STRUCTURE_TYPE_INVALID;
 };
 
 #endif //RELIC_RELICSTRUCT_H

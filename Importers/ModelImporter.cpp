@@ -152,19 +152,16 @@ void *ModelImporter::Serialize(void *resource, size_t &totalSize)
 
 ModelImporter::ModelImporter()
 {
-    instance = this;
 }
 
 ModelImporter::~ModelImporter()
 {
-    instance = nullptr;
 }
 
-ModelImporter *ModelImporter::instance = nullptr;
-
-ModelImporter *ModelImporter::GetInstance()
+ModelImporter *ModelImporter::Instance()
 {
-    return instance;
+    static ModelImporter importer;
+    return &importer;
 }
 
-ImporterRegistrar ModelImporter::registrar(REL_STRUCTURE_TYPE_MODEL, reinterpret_cast<IImporterGetter>(&GetInstance));
+ImporterRegistrar ModelImporter::registrar(REL_STRUCTURE_TYPE_MODEL, reinterpret_cast<IImporterGetter>(&Instance));

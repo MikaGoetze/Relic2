@@ -2,6 +2,7 @@
 // Created by mikag on 4/1/2020.
 //
 
+#include <Debugging/Logger.h>
 #include "IImporter.h"
 
 IImporter *IImporter::GetImporterForType(RelicType type)

@@ -54,7 +54,7 @@ T *ResourceManager::GetSimpleResourceData(uint_fast32_t guid)
     auto resource = resources.find(guid);
     if (resource != resources.end())
     {
-        return resource->second;
+        return static_cast<T*>(resource->second);
     }
 
     auto *res = manager.LoadResource<T>(guid);

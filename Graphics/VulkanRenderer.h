@@ -35,17 +35,18 @@ struct SwapChainSupportDetails
 class VulkanRenderer : public Renderer
 {
 public:
-    explicit VulkanRenderer(Window *window, bool enableValidation = false);
+    explicit VulkanRenderer(Window *window, bool enableValidation = false, Mesh* mesh = nullptr);
 
     ~VulkanRenderer() override;
 
-    void CreateVertexBuffer(Mesh &mesh);
 
 private:
     VkInstance instance;
 
     /// Create a Vulkan Instance
     bool CreateInstance();
+
+    void CreateBuffers();
 
     /// Check whether a vulkan instance extension is supported.
     /// \param extensionName Name of the extension to query.
@@ -187,6 +188,9 @@ private:
     VkBuffer vertexBuffer;
     VmaAllocation vertexBufferAllocation;
 
+    VkBuffer indexBuffer;
+    VmaAllocation indexBufferAllocation;
+
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;
     std::vector<VkFence> inFlightFences;
@@ -196,6 +200,8 @@ private:
     bool framebufferResized = false;
 
     VmaAllocator allocator;
+
+    Mesh *mesh;
 
     std::vector<VkImageView> swapchainImageViews;
 

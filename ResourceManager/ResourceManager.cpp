@@ -10,8 +10,7 @@ void ResourceManager::SetResourceData(uint_fast32_t guid, RelicType type, size_t
 {
     if (!manager.HasRPACKLoaded())
     {
-        Logger::Log("[ResourceManager] Please set an RPACK before trying to set resource data.");
-        return;
+        SetRPACK("default.rpack");
     }
 
     //TODO: Batch this up
