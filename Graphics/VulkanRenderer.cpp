@@ -12,6 +12,7 @@
 #include <map>
 #include <set>
 #include <Core/Util.h>
+#include <ResourceManager/ResourceManager.h>
 #include "VulkanRenderer.h"
 #include "VulkanUtils.h"
 
@@ -98,9 +99,7 @@ VulkanRenderer::VulkanRenderer(Window *window, bool enableValidation) : Renderer
     CreateGraphicsPipeline();
     CreateFrameBuffers();
     CreateCommandPool();
-    //TODO: Temp
-    Mesh * mesh = new Mesh();
-    CreateVertexBuffer(*mesh);
+
     CreateCommandBuffers();
     CreateSynchronisationObjects();
 }
@@ -127,6 +126,9 @@ VulkanRenderer::~VulkanRenderer()
 {
     CleanupSwapchain();
 
+    vmaDestroyBuffer(allocator, vertexBuffer, vertexBufferAllocation);
+    vmaDestroyAllocator(allocator);
+
     for(size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
         vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
@@ -135,8 +137,6 @@ VulkanRenderer::~VulkanRenderer()
     }
 
     vkDestroyCommandPool(device, commandPool, nullptr);
-
-    vmaDestroyAllocator(allocator);
 
     delete supportedExtensions;
     delete supportedValidationLayers;
@@ -839,7 +839,9 @@ void VulkanRenderer::CreateCommandBuffers()
 
         vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-        vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
+
+        //TODO: Do rendering stuff
+
         vkCmdEndRenderPass(commandBuffers[i]);
 
         if(vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS)
@@ -1011,5 +1013,18 @@ void VulkanRenderer::CreateVertexBuffer(Mesh& mesh)
     createInfo.size = sizeof(Vertex) * mesh.vertexCount;
     createInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    VmaAllocationCreateInfo allocationCreateInfo = {};
+    allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+
+    if (vmaCreateBuffer(allocator, &createInfo, &allocationCreateInfo, &vertexBuffer, &vertexBufferAllocation, nullptr))
+    {
+        throw std::runtime_error("failed to create vertex buffer");
+    }
+}
+
+void VulkanRenderer::RecordObject(Model &model)
+{
+
 }
 

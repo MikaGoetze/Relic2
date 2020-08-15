@@ -16,44 +16,50 @@ class ResourceManager
 {
 private:
     CompressionManager manager;
-    std::map<uint_fast32_t, void*> resources;
+    std::map<uint_fast32_t, void *> resources;
 
-    static ResourceManager * instance;
+    static ResourceManager *instance;
 public:
     template<typename T>
-    T * GetSimpleResourceData(uint_fast32_t guid);
-    void * GetResourceData(uint_fast32_t guid, bool forceReload = false);
+    T *GetSimpleResourceData(uint_fast32_t guid);
+
+    GUID ImportResource(std::string filepath, RelicType type);
+
+    void *GetResourceData(uint_fast32_t guid, bool forceReload = false);
+
     bool IsResourceLoaded(uint_fast32_t guid);
+
     void SetResourceData(uint_fast32_t guid, RelicType type, size_t size, void *data, bool write = true);
+
     void SetRPACK(std::string rpack, bool deleteResources = false);
+
     void WriteRPACK();
 
-    static ResourceManager * GetInstance();
+    static ResourceManager *GetInstance();
 
     ResourceManager();
+
     ~ResourceManager();
 };
 
 template<typename T>
-T * ResourceManager::GetSimpleResourceData(uint_fast32_t guid)
+T *ResourceManager::GetSimpleResourceData(uint_fast32_t guid)
 {
-    if(!manager.HasRPACKLoaded())
+    if (!manager.HasRPACKLoaded())
     {
         Logger::Log("[ResourceManager] Cannot load resource when no RPACK is loaded.");
         return nullptr;
     }
 
     auto resource = resources.find(guid);
-    if(resource != resources.end())
+    if (resource != resources.end())
     {
         return resource->second;
     }
 
-    auto * res =  manager.LoadResource<T>(guid);
+    auto *res = manager.LoadResource<T>(guid);
     resources.insert(std::pair<uint_fast32_t, void *>(guid, res));
     return res;
 }
-
-
 
 #endif //RELIC_2_0_RESOURCEMANAGER_H

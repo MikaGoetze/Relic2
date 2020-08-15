@@ -39,6 +39,8 @@ public:
 
     ~VulkanRenderer() override;
 
+    void CreateVertexBuffer(Mesh &mesh);
+
 private:
     VkInstance instance;
 
@@ -116,6 +118,8 @@ private:
 
     void Render() override;
 
+    void RecordObject(Model &model) override;
+
     void FinishPendingRenderingOperations() override;
 
     bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
@@ -180,6 +184,9 @@ private:
     VkSurfaceFormatKHR swapchainImageFormat{};
     VkExtent2D swapchainImageExtent{};
 
+    VkBuffer vertexBuffer;
+    VmaAllocation vertexBufferAllocation;
+
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;
     std::vector<VkFence> inFlightFences;
@@ -212,7 +219,6 @@ private:
 
     void CreateAllocator();
 
-    void CreateVertexBuffer(Mesh & mesh);
 };
 
 

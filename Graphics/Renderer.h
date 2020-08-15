@@ -6,6 +6,7 @@
 #define RELIC_RENDERER_H
 
 #include "Window.h"
+#include "Model.h"
 
 /// Interface for creating render back ends.
 class Renderer
@@ -15,6 +16,7 @@ public:
 
     virtual ~Renderer() = 0;
 
+    virtual void RecordObject(Model &model) = 0;
     virtual void Render() = 0;
     virtual void FinishPendingRenderingOperations() = 0;
 

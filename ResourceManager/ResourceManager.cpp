@@ -66,7 +66,8 @@ void *ResourceManager::GetResourceData(uint_fast32_t guid, bool forceReload)
     if (importer == nullptr)
     {
         //Then we assume it's just raw data.
-        Logger::Log(3, "[ResourceManager] [WRN] Could not find importer for type ", std::to_string(type).c_str(), " assuming no import is needed.");
+        Logger::Log(3, "[ResourceManager] [WRN] Could not find importer for type ", std::to_string(type).c_str(),
+                    " assuming no import is needed.");
         return data;
     }
 
@@ -91,5 +92,13 @@ void ResourceManager::WriteRPACK()
 {
     manager.WriteRPACK();
 }
+
+GUID ResourceManager::ImportResource(std::string filepath, RelicType type)
+{
+    IImporter *importer = IImporter::GetImporterForType(type);
+    return importer->ImportResource(filepath);
+}
+
+
 
 ResourceManager *ResourceManager::instance;
