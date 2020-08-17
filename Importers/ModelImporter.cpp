@@ -4,6 +4,7 @@
 
 #include <Graphics/Model.h>
 #include "ModelImporter.h"
+#include <glm/gtc/constants.hpp>
 
 GUID ModelImporter::ImportResource(const std::string &filePath)
 {
@@ -24,7 +25,11 @@ GUID ModelImporter::ImportResource(const std::string &filePath)
 
         for (size_t j = 0; j < geometry->getIndexCount(); j++)
         {
-            uintFaceIndices[j] = static_cast<uint32_t>(faceIndices[j]);
+            int index = faceIndices[j];
+            //Fix up negative indices.
+            if(index < 0) index = (index + 1) * -1;
+
+            uintFaceIndices[j] = static_cast<uint32_t>(index);
         }
 
         model->meshes[i].indices = uintFaceIndices;
@@ -38,11 +43,12 @@ GUID ModelImporter::ImportResource(const std::string &filePath)
         for (size_t j = 0; j < geometry->getVertexCount(); j++)
         {
             Vertex vertex = {};
-            vertex.position = glm::vec3(verts[i].x, verts[i].y, verts[i].z);
-            vertex.normal = glm::vec3(normals[i].x, normals[i].y, normals[i].z);
+            vertex.position = glm::vec3(verts[j].x, verts[j].y, verts[j].z);
+            vertex.normal = glm::vec3(normals[j].x, normals[j].y, normals[j].z);
             //TODO: Init tex coords.
+            vertex.textureCoordinate = glm::zero<glm::vec2>();
 
-            relVerts[i] = vertex;
+            relVerts[j] = vertex;
         }
 
         model->meshes[i].vertices = relVerts;

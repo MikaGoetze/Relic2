@@ -13,6 +13,7 @@
 #include <vector>
 #include "OpenFBX/ofbx.h"
 #include "Model.h"
+#include <glm/glm.hpp>
 
 struct QueueFamilyIndices
 {
@@ -47,6 +48,7 @@ private:
     bool CreateInstance();
 
     void CreateBuffers();
+    void CreateUniformBuffers();
 
     /// Check whether a vulkan instance extension is supported.
     /// \param extensionName Name of the extension to query.
@@ -157,6 +159,9 @@ private:
 
     VkSurfaceKHR surface{};
     VkRenderPass renderPass{};
+    VkDescriptorSetLayout descriptorSetLayout{};
+    VkDescriptorPool descriptorPool{};
+    std::vector<VkDescriptorSet> descriptorSets;
     VkPipelineLayout pipelineLayout{};
     VkPipeline graphicsPipeline{};
 
@@ -164,6 +169,9 @@ private:
     std::vector<VkFramebuffer> swapchainFrameBuffers;
     VkCommandPool commandPool{};
     std::vector<VkCommandBuffer> commandBuffers;
+
+    std::vector<VkBuffer> uniformBuffers;
+    std::vector<VmaAllocation> uniformBufferAllocations;
 
     VkDevice device{};
 
@@ -205,6 +213,7 @@ private:
 
     std::vector<VkImageView> swapchainImageViews;
 
+    void CreateDescriptorSetLayout();
     void CreateGraphicsPipeline();
 
     void CreateRenderPass();
@@ -214,6 +223,8 @@ private:
     void CreateFrameBuffers();
 
     void CreateCommandPool();
+    void CreateDescriptorSetPool();
+    void CreateDescriptorSets();
 
     void CreateCommandBuffers();
 
@@ -225,6 +236,14 @@ private:
 
     void CreateAllocator();
 
+    struct UniformBufferObject
+    {
+        glm::mat4 model;
+        glm::mat4 view;
+        glm::mat4 proj;
+    };
+
+    void UpdateUniformBuffers(uint32_t currentImage);
 };
 
 
