@@ -31,11 +31,20 @@ typedef struct Mesh : RelicStruct
     GUID guid;
 } Mesh;
 
+typedef struct Material : RelicStruct
+{
+    uint32_t sType = REL_STRUCTURE_TYPE_MATERIAL;
+    std::string filename;
+} Material;
+
 typedef struct Model : RelicStruct
 {
     RelicType sType = REL_STRUCTURE_TYPE_MODEL;
     size_t meshCount;
     Mesh * meshes;
+    size_t materialCount;
+    Material* materials;
+
     GUID guid;
 } Model;
 

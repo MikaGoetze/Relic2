@@ -45,7 +45,7 @@
 //  2016-08-27: Vulkan: Fix Vulkan example for use when a depth buffer is active.
 
 #include "imgui.h"
-#include "imgui_impl_vulkan.h"
+#include "IMGUI/imgui_impl_vulkan.h"
 #include <stdio.h>
 
 // Reusable buffers used for rendering 1 current in-flight frame, for ImGui_ImplVulkan_RenderDrawData()
@@ -500,7 +500,7 @@ bool ImGui_ImplVulkan_CreateFontsTexture(VkCommandBuffer command_buffer)
         write_desc[0].descriptorCount = 1;
         write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         write_desc[0].pImageInfo = desc_image;
-        vkUpdateDescriptorSets(v->Device, 1, write_desc, 0, NULL);
+        vkUpdateDescriptorSets(v->Device, 1, write_desc, 0, nullptr);
     }
 
     // Create the Upload Buffer:

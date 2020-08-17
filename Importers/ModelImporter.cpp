@@ -15,6 +15,23 @@ GUID ModelImporter::ImportResource(const std::string &filePath)
     auto *model = new Model();
     model->meshCount = scene->getMeshCount();
     model->meshes = new Mesh[model->meshCount];
+
+    std::map<ofbx::u64, const ofbx::Material&> mats;
+    for(size_t i = 0; i < scene->getMeshCount(); i++)
+    {
+        const ofbx::Mesh& mesh = *scene->getMesh(i);
+        for(size_t j = 0; j < mesh.getMaterialCount(); j++)
+        {
+            const ofbx::Material& material = *mesh.getMaterial(j);
+            if(mats.find(material.id) != mats.end())
+            {
+                continue;
+            }
+
+            mats.insert({material.id, material});
+        }
+    }
+
     for (size_t i = 0; i < model->meshCount; i++)
     {
         const ofbx::Geometry *geometry = scene->getMesh(i)->getGeometry();
@@ -40,13 +57,26 @@ GUID ModelImporter::ImportResource(const std::string &filePath)
 
         auto *relVerts = new Vertex[geometry->getVertexCount()];
 
+        bool hasUVs = geometry->getUVs() != nullptr;
+        const ofbx::Vec2* uvs = nullptr;
+        if(hasUVs) uvs = geometry->getUVs();
+
+
+        ofbx::Vec3 ofbxScale = scene->getMesh(i)->getLocalScaling();
+        glm::vec3 scale = glm::vec3(ofbxScale.x, ofbxScale.y, ofbxScale.z) / 100.0f;
         for (size_t j = 0; j < geometry->getVertexCount(); j++)
         {
             Vertex vertex = {};
-            vertex.position = glm::vec3(verts[j].x, verts[j].y, verts[j].z);
-            vertex.normal = glm::vec3(normals[j].x, normals[j].y, normals[j].z);
-            //TODO: Init tex coords.
-            vertex.textureCoordinate = glm::zero<glm::vec2>();
+            vertex.position = glm::vec3(verts[j].x, verts[j].y, verts[j].z) * scale;
+            vertex.normal = glm::vec3(normals[j].x, normals[j].y, normals[j].z) * scale;
+            if(hasUVs)
+            {
+                vertex.textureCoordinate = glm::vec2(uvs[j].x, uvs[j].y);
+            }
+            else
+            {
+                vertex.textureCoordinate = glm::zero<glm::vec2>();
+            }
 
             relVerts[j] = vertex;
         }

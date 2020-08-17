@@ -14,6 +14,9 @@
 #include "OpenFBX/ofbx.h"
 #include "Model.h"
 #include <glm/glm.hpp>
+#include "../IMGUI/imgui.h"
+#include "../IMGUI/imgui_impl_vulkan.h"
+#include "../IMGUI/imgui_impl_glfw.h"
 
 struct QueueFamilyIndices
 {
@@ -139,6 +142,8 @@ private:
 
     void CreateSwapchainImageViews();
 
+    void CreateDepthResources();
+
     //Variables
 
     bool validationLayersEnabled;
@@ -170,8 +175,15 @@ private:
     VkCommandPool commandPool{};
     std::vector<VkCommandBuffer> commandBuffers;
 
+    //TODO: Temp
+    ImDrawData * imGuiDrawData;
+
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VmaAllocation> uniformBufferAllocations;
+
+    VkImage depthImage;
+    VmaAllocation depthImageAllocation;
+    VkImageView depthImageView;
 
     VkDevice device{};
 
@@ -244,6 +256,10 @@ private:
     };
 
     void UpdateUniformBuffers(uint32_t currentImage);
+
+    void SetupImGui();
+
+    void UpdateCommandBuffers();
 };
 
 
