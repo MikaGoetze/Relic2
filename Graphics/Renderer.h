@@ -16,9 +16,11 @@ public:
 
     virtual ~Renderer() = 0;
 
-    virtual void RecordObject(Model &model) = 0;
     virtual void Render() = 0;
     virtual void FinishPendingRenderingOperations() = 0;
+
+    virtual void PrepareModel(Model& model) = 0;
+    virtual void DestroyModel(Model& model) = 0;
 
 protected:
     Window *window;

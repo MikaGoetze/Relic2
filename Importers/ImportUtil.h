@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <string>
+
 #define GUID uint_fast32_t
 #define GUID_INVALID 0
 

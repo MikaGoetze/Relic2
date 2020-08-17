@@ -18,6 +18,7 @@
 #include "VulkanRenderer.h"
 #include "VulkanUtils.h"
 #include <glm/gtc/matrix_transform.hpp>
+#include "VulkanModelExtensions.h"
 
 
 #pragma clang diagnostic push
@@ -57,7 +58,7 @@ bool VulkanRenderer::CreateInstance()
     return true;
 }
 
-VulkanRenderer::VulkanRenderer(Window *window, bool enableValidation, Mesh *mesh) : Renderer(window)
+VulkanRenderer::VulkanRenderer(Window *window, Model *model, bool enableValidation) : Renderer(window)
 {
     instance = VkInstance{};
     supportedExtensionCount = 0;
@@ -68,6 +69,7 @@ VulkanRenderer::VulkanRenderer(Window *window, bool enableValidation, Mesh *mesh
     validationLayersEnabled = enableValidation;
     debugMessenger = {};
     imGuiDrawData = nullptr;
+    this->model = model;
 
     int vulkanSupported = glfwVulkanSupported();
     if (vulkanSupported == GLFW_FALSE)
@@ -75,8 +77,6 @@ VulkanRenderer::VulkanRenderer(Window *window, bool enableValidation, Mesh *mesh
         Logger::Log("Vulkan is not supported.");
         exit(0);
     }
-
-    this->mesh = mesh;
 
     window->SetUserPointer(this);
     window->RegisterWindowSizeChangedCallback(WindowResizedCallback);
@@ -108,13 +108,13 @@ VulkanRenderer::VulkanRenderer(Window *window, bool enableValidation, Mesh *mesh
     CreateDepthResources();
     CreateFrameBuffers();
     CreateCommandPool();
-    CreateBuffers();
     CreateUniformBuffers();
     CreateDescriptorSetPool();
     CreateDescriptorSets();
 
     CreateCommandBuffers();
     CreateSynchronisationObjects();
+
 //    SetupImGui();
 }
 
@@ -142,9 +142,7 @@ VulkanRenderer::~VulkanRenderer()
 
     vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-    vmaDestroyBuffer(allocator, vertexBuffer, vertexBufferAllocation);
-    vmaDestroyBuffer(allocator, indexBuffer, indexBufferAllocation);
-
+    VulkanRenderer::DestroyModel(*model);
 
     vmaDestroyAllocator(allocator);
 
@@ -841,6 +839,8 @@ void VulkanRenderer::CreateCommandPool()
 
 void VulkanRenderer::CreateCommandBuffers()
 {
+    //TODO: Temp
+    PrepareModel(*model);
     commandBuffers.resize(swapchainFrameBuffers.size());
 
     VkCommandBufferAllocateInfo allocateInfo = {};
@@ -882,11 +882,17 @@ void VulkanRenderer::CreateCommandBuffers()
         vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
         VkDeviceSize offsets[1] = {0};
-        vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, &vertexBuffer, offsets);
-        vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
         vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
-        vkCmdDrawIndexed(commandBuffers[i], mesh->indexCount, 1, 0, 0, 0);
+        for (size_t m = 0; m < model->meshCount; m++)
+        {
+            auto mesh = model->meshes[m];
+            auto renderData = std::static_pointer_cast<VulkanRenderData>(mesh.renderData);
+            vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, &renderData->vertexBuffer.buffer, offsets);
+            vkCmdBindIndexBuffer(commandBuffers[i], renderData->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+            vkCmdDrawIndexed(commandBuffers[i], mesh.indexCount, 1, 0, 0, 0);
+        }
 
         //Dear IMGUI
 //        ImGui::Render();
@@ -1071,24 +1077,6 @@ void VulkanRenderer::CreateAllocator()
     {
         throw std::runtime_error("Failed to create VMA Allocator.");
     }
-}
-
-void VulkanRenderer::CreateBuffers()
-{
-    CreateBuffer(allocator, sizeof(Vertex) * mesh->vertexCount, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY,
-                 vertexBuffer, vertexBufferAllocation);
-    CreateBuffer(allocator, sizeof(uint32_t) * mesh->indexCount, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY,
-                 indexBuffer, indexBufferAllocation);
-
-    //Temp upload data
-
-    WriteToBuffer(allocator, vertexBuffer, mesh->vertices, mesh->vertexCount * sizeof(Vertex), commandPool, device, graphicsQueue);
-    WriteToBuffer(allocator, indexBuffer, mesh->indices, mesh->indexCount * sizeof(uint32_t), commandPool, device, graphicsQueue);
-}
-
-void VulkanRenderer::RecordObject(Model &model)
-{
-    mesh = model.meshes;
 }
 
 void VulkanRenderer::CreateDescriptorSetLayout()
@@ -1279,3 +1267,41 @@ void VulkanRenderer::UpdateCommandBuffers()
 
 }
 
+void VulkanRenderer::PrepareModel(Model &model)
+{
+    for (size_t i = 0; i < model.meshCount; i++)
+    {
+        Mesh &mesh = model.meshes[i];
+
+        auto renderData = std::make_shared<VulkanRenderData>();
+        renderData->indexBuffer = {};
+        renderData->vertexBuffer = {};
+
+        VkDeviceSize vertexBufferSize = mesh.vertexCount * sizeof(Vertex);
+        VkDeviceSize indexBufferSize = mesh.indexCount * sizeof(uint32_t);
+
+        //Create buffers
+        CreateBuffer(allocator, indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, renderData->indexBuffer.buffer,
+                     renderData->indexBuffer.allocation);
+        CreateBuffer(allocator, vertexBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, renderData->vertexBuffer.buffer,
+                     renderData->vertexBuffer.allocation);
+
+        //Write data to them
+        WriteToBuffer(allocator, renderData->indexBuffer.buffer, mesh.indices, indexBufferSize, commandPool, device, graphicsQueue);
+        WriteToBuffer(allocator, renderData->vertexBuffer.buffer, mesh.vertices, vertexBufferSize, commandPool, device, graphicsQueue);
+
+        mesh.renderData = std::static_pointer_cast<void>(renderData);
+    }
+}
+
+void VulkanRenderer::DestroyModel(Model &model)
+{
+    for (size_t i = 0; i < model.meshCount; i++)
+    {
+        Mesh &mesh = model.meshes[i];
+        auto renderData = std::static_pointer_cast<VulkanRenderData>(mesh.renderData);
+
+        vmaDestroyBuffer(allocator, renderData->indexBuffer.buffer, renderData->indexBuffer.allocation);
+        vmaDestroyBuffer(allocator, renderData->vertexBuffer.buffer, renderData->vertexBuffer.allocation);
+    }
+}

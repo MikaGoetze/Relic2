@@ -10,6 +10,7 @@
 #include <glm/vec2.hpp>
 #include <Importers/ImportUtil.h>
 #include <Core/RelicStruct.h>
+#include <memory>
 
 typedef struct Vertex
 {
@@ -18,7 +19,7 @@ typedef struct Vertex
     glm::vec2 textureCoordinate;
 } Vertex;
 
-typedef struct Mesh : RelicStruct
+struct Mesh : RelicStruct
 {
    uint32_t sType = REL_STRUCTURE_TYPE_MESH;
 
@@ -28,16 +29,18 @@ typedef struct Mesh : RelicStruct
    uint32_t * indices;
    size_t indexCount;
 
-    GUID guid;
-} Mesh;
+   std::shared_ptr<void> renderData;
 
-typedef struct Material : RelicStruct
+    GUID guid;
+} ;
+
+struct Material : RelicStruct
 {
     uint32_t sType = REL_STRUCTURE_TYPE_MATERIAL;
     std::string filename;
-} Material;
+};
 
-typedef struct Model : RelicStruct
+struct Model : RelicStruct
 {
     RelicType sType = REL_STRUCTURE_TYPE_MODEL;
     size_t meshCount;
@@ -46,7 +49,7 @@ typedef struct Model : RelicStruct
     Material* materials;
 
     GUID guid;
-} Model;
+};
 
 
 #endif //RELIC_MODEL_H

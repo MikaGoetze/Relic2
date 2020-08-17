@@ -49,7 +49,7 @@ void Relic::Initialise()
 //    ImGui::CreateContext();
 //    ImGui::StyleColorsDark();
 
-    renderer = new VulkanRenderer(window, true, model->meshes);
+    renderer = new VulkanRenderer(window, model, true);
 }
 
 void Relic::GameLoop()
