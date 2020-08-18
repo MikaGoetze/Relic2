@@ -235,7 +235,7 @@ private:
     void CreateDescriptorSetPool();
     void CreateDescriptorSets();
 
-    void CreateCommandBuffers();
+    void CreateCommandBuffers(bool isRecreate);
 
     void CreateSynchronisationObjects();
 

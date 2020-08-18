@@ -112,10 +112,10 @@ VulkanRenderer::VulkanRenderer(Window *window, Model *model, bool enableValidati
     CreateDescriptorSetPool();
     CreateDescriptorSets();
 
-    CreateCommandBuffers();
+    CreateCommandBuffers(false);
     CreateSynchronisationObjects();
 
-//    SetupImGui();
+    SetupImGui();
 }
 
 bool VulkanRenderer::ExtensionSupported(const char *extensionName)
@@ -143,6 +143,8 @@ VulkanRenderer::~VulkanRenderer()
     vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
     VulkanRenderer::DestroyModel(*model);
+
+    ImGui_ImplVulkan_Shutdown();
 
     vmaDestroyAllocator(allocator);
 
@@ -838,9 +840,10 @@ void VulkanRenderer::CreateCommandPool()
     }
 }
 
-void VulkanRenderer::CreateCommandBuffers()
+void VulkanRenderer::CreateCommandBuffers(bool isRecreate)
 {
-    PrepareModel(*model);
+    if(!isRecreate) PrepareModel(*model);
+
     commandBuffers.resize(swapchainFrameBuffers.size());
 
     VkCommandBufferAllocateInfo allocateInfo = {};
@@ -978,7 +981,6 @@ void VulkanRenderer::CleanupSwapchain()
         vmaDestroyBuffer(allocator, uniformBuffers[i], uniformBufferAllocations[i]);
     }
 
-
     vkDestroyImageView(device, depthImageView, nullptr);
     vmaDestroyImage(allocator, depthImage, depthImageAllocation);
 
@@ -993,6 +995,7 @@ void VulkanRenderer::RecreateSwapChain()
     vkDeviceWaitIdle(device);
 
     CleanupSwapchain();
+    ImGui_ImplVulkan_Shutdown();
 
     CreateSwapChain();
     CreateSwapchainImageViews();
@@ -1001,10 +1004,10 @@ void VulkanRenderer::RecreateSwapChain()
     CreateDepthResources();
     CreateFrameBuffers();
     CreateUniformBuffers();
-
-    CreateCommandBuffers();
     CreateDescriptorSetPool();
     CreateDescriptorSets();
+    CreateCommandBuffers(false);
+    SetupImGui();
 }
 
 void VulkanRenderer::WindowResizedCallback(Window *window, int width, int height)
@@ -1152,7 +1155,7 @@ void VulkanRenderer::CreateDepthResources()
 
 void VulkanRenderer::SetupImGui()
 {
-    ImGui_ImplGlfw_InitForVulkan(window->GetInternalWindow(), true);
+    ImGui_ImplGlfw_InitForVulkan(window->GetInternalWindow(), false);
     ImGui_ImplVulkan_InitInfo initInfo = {};
     initInfo.Instance = instance;
     initInfo.PhysicalDevice = physicalDevice;
@@ -1251,9 +1254,9 @@ void VulkanRenderer::UpdateCommandBuffer(uint32_t frame)
     }
 
     //Dear IMGUI
-//        ImGui::Render();
-//        imGuiDrawData = ImGui::GetDrawData();
-//        if (imGuiDrawData != nullptr) ImGui_ImplVulkan_RenderDrawData(imGuiDrawData, commandBuffers[i]);
+    ImGui::Render();
+    imGuiDrawData = ImGui::GetDrawData();
+    if (imGuiDrawData != nullptr) ImGui_ImplVulkan_RenderDrawData(imGuiDrawData, commandBuffers[frame]);
 
     vkCmdEndRenderPass(commandBuffers[frame]);
 

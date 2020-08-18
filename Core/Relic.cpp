@@ -46,10 +46,19 @@ void Relic::Initialise()
     GUID guid = resourceManager->ImportResource("Resources/Models/Handgun.fbx", REL_STRUCTURE_TYPE_MODEL);
     Model* model = resourceManager->GetSimpleResourceData<Model>(guid);
 
-//    ImGui::CreateContext();
-//    ImGui::StyleColorsDark();
+    ImGui::CreateContext();
+    ImGui::StyleColorsDark();
 
     renderer = new VulkanRenderer(window, model, true);
+
+    //Setup initial window pos
+
+    // Start the Dear ImGui frame
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+    ImGui::SetWindowPos("Stats", ImVec2(0, 0));
+    ImGui::Render();
 }
 
 void Relic::GameLoop()
@@ -58,13 +67,17 @@ void Relic::GameLoop()
     {
         glfwPollEvents();
 
-        // Start the Dear ImGui frame
-//        ImGui_ImplVulkan_NewFrame();
-//        ImGui_ImplGlfw_NewFrame();
-//        ImGui::NewFrame();
+        // Start the ImGui frame
+        ImGui_ImplVulkan_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
 
-//        bool showWindow = true;
-//        ImGui::ShowDemoWindow(&showWindow);
+        ImGui::Begin("Stats", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+
+
+
+        ImGui::End();
+
         DrawFrame();
     }
 
