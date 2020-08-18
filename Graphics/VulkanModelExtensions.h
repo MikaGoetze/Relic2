@@ -18,6 +18,7 @@ struct VulkanRenderData
 {
     Buffer vertexBuffer;
     Buffer indexBuffer;
+    bool ready;
 };
 
 #endif //RELIC_VULKANMODELEXTENSIONS_H

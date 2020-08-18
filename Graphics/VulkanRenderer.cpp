@@ -830,6 +830,7 @@ void VulkanRenderer::CreateCommandPool()
     VkCommandPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
     if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS)
     {
@@ -839,7 +840,6 @@ void VulkanRenderer::CreateCommandPool()
 
 void VulkanRenderer::CreateCommandBuffers()
 {
-    //TODO: Temp
     PrepareModel(*model);
     commandBuffers.resize(swapchainFrameBuffers.size());
 
@@ -852,59 +852,6 @@ void VulkanRenderer::CreateCommandBuffers()
     if (vkAllocateCommandBuffers(device, &allocateInfo, commandBuffers.data()) != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to allocate command buffer");
-    }
-
-    for (size_t i = 0; i < commandBuffers.size(); i++)
-    {
-        VkCommandBufferBeginInfo beginInfo = {};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-        if (vkBeginCommandBuffer(commandBuffers[i], &beginInfo) != VK_SUCCESS)
-        {
-            throw std::runtime_error("Failed to begin recording a command buffer.");
-        }
-
-        VkRenderPassBeginInfo renderPassInfo = {};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = renderPass;
-        renderPassInfo.framebuffer = swapchainFrameBuffers[i];
-        renderPassInfo.renderArea.offset = {0, 0};
-        renderPassInfo.renderArea.extent = swapchainImageExtent;
-
-        std::array<VkClearValue, 2> clearValues = {};
-        clearValues[0] = {0.0f, 0.0f, 0.0f, 0.0f};
-        clearValues[1] = {1.0f, 0};
-
-        renderPassInfo.clearValueCount = clearValues.size();
-        renderPassInfo.pClearValues = clearValues.data();
-
-        vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-
-        VkDeviceSize offsets[1] = {0};
-
-        vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
-
-        for (size_t m = 0; m < model->meshCount; m++)
-        {
-            auto mesh = model->meshes[m];
-            auto renderData = std::static_pointer_cast<VulkanRenderData>(mesh.renderData);
-            vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, &renderData->vertexBuffer.buffer, offsets);
-            vkCmdBindIndexBuffer(commandBuffers[i], renderData->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-            vkCmdDrawIndexed(commandBuffers[i], mesh.indexCount, 1, 0, 0, 0);
-        }
-
-        //Dear IMGUI
-//        ImGui::Render();
-//        imGuiDrawData = ImGui::GetDrawData();
-//        if (imGuiDrawData != nullptr) ImGui_ImplVulkan_RenderDrawData(imGuiDrawData, commandBuffers[i]);
-
-        vkCmdEndRenderPass(commandBuffers[i]);
-
-        if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS)
-        {
-            throw std::runtime_error("Failed to record command buffer.");
-        }
     }
 }
 
@@ -957,6 +904,7 @@ void VulkanRenderer::Render()
     imagesInFlight[imageIndex] = inFlightFences[currentFrame];
 
     UpdateUniformBuffers(imageIndex);
+    UpdateCommandBuffer(imageIndex);
 
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1035,7 +983,6 @@ void VulkanRenderer::CleanupSwapchain()
     vmaDestroyImage(allocator, depthImage, depthImageAllocation);
 
     vkDestroyDescriptorPool(device, descriptorPool, nullptr);
-
 }
 
 
@@ -1111,8 +1058,6 @@ void VulkanRenderer::CreateUniformBuffers()
     {
         CreateBuffer(allocator, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, uniformBuffers[i], uniformBufferAllocations[i]);
     }
-
-
 }
 
 void VulkanRenderer::UpdateUniformBuffers(uint32_t currentImage)
@@ -1124,8 +1069,8 @@ void VulkanRenderer::UpdateUniformBuffers(uint32_t currentImage)
 
     UniformBufferObject ubo = {};
     ubo.model = glm::rotate(glm::rotate(glm::identity<glm::mat4>(), time * glm::radians(45.0f), glm::vec3(0, 1, 0)), glm::radians(-90.0f), glm::vec3(1, 0, 0));
-    ubo.view = glm::lookAt(glm::vec3(30), glm::zero<glm::vec3>(), glm::vec3(0, 1, 0));
-    ubo.proj = glm::perspective(glm::radians(45.0f), swapchainImageExtent.width / (float) swapchainImageExtent.height, 1.0f, 100.0f);
+    ubo.view = glm::lookAt(glm::vec3(5), glm::zero<glm::vec3>(), glm::vec3(0, 1, 0));
+    ubo.proj = glm::perspective(glm::radians(45.0f), swapchainImageExtent.width / (float) swapchainImageExtent.height, 1.0f, 200.0f);
 
     //counteract opengl flip
     ubo.proj[1][1] *= -1;
@@ -1262,9 +1207,60 @@ void VulkanRenderer::SetupImGui()
     ImGui_ImplVulkan_DestroyFontUploadObjects();
 }
 
-void VulkanRenderer::UpdateCommandBuffers()
+void VulkanRenderer::UpdateCommandBuffer(uint32_t frame)
 {
+    VkCommandBufferBeginInfo beginInfo = {};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
+    if (vkBeginCommandBuffer(commandBuffers[frame], &beginInfo) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to begin recording a command buffer.");
+    }
+
+    VkRenderPassBeginInfo renderPassInfo = {};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = renderPass;
+    renderPassInfo.framebuffer = swapchainFrameBuffers[frame];
+    renderPassInfo.renderArea.offset = {0, 0};
+    renderPassInfo.renderArea.extent = swapchainImageExtent;
+
+    std::array<VkClearValue, 2> clearValues = {};
+    clearValues[0] = {0.0f, 0.0f, 0.0f, 0.0f};
+    clearValues[1] = {1.0f, 0};
+
+    renderPassInfo.clearValueCount = clearValues.size();
+    renderPassInfo.pClearValues = clearValues.data();
+
+    vkCmdBeginRenderPass(commandBuffers[frame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBindPipeline(commandBuffers[frame], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+
+    VkDeviceSize offsets[1] = {0};
+
+    vkCmdBindDescriptorSets(commandBuffers[frame], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[frame], 0, nullptr);
+
+    for (size_t m = 0; m < model->meshCount; m++)
+    {
+        auto mesh = model->meshes[m];
+        auto renderData = (VulkanRenderData *) mesh.renderData;
+
+        if (renderData == nullptr || !renderData->ready) continue;
+
+        vkCmdBindVertexBuffers(commandBuffers[frame], 0, 1, &renderData->vertexBuffer.buffer, offsets);
+        vkCmdBindIndexBuffer(commandBuffers[frame], renderData->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdDrawIndexed(commandBuffers[frame], mesh.indexCount, 1, 0, 0, 0);
+    }
+
+    //Dear IMGUI
+//        ImGui::Render();
+//        imGuiDrawData = ImGui::GetDrawData();
+//        if (imGuiDrawData != nullptr) ImGui_ImplVulkan_RenderDrawData(imGuiDrawData, commandBuffers[i]);
+
+    vkCmdEndRenderPass(commandBuffers[frame]);
+
+    if (vkEndCommandBuffer(commandBuffers[frame]) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to record command buffer.");
+    }
 }
 
 void VulkanRenderer::PrepareModel(Model &model)
@@ -1273,24 +1269,39 @@ void VulkanRenderer::PrepareModel(Model &model)
     {
         Mesh &mesh = model.meshes[i];
 
-        auto renderData = std::make_shared<VulkanRenderData>();
+        auto renderData = new VulkanRenderData();
         renderData->indexBuffer = {};
         renderData->vertexBuffer = {};
 
         VkDeviceSize vertexBufferSize = mesh.vertexCount * sizeof(Vertex);
         VkDeviceSize indexBufferSize = mesh.indexCount * sizeof(uint32_t);
 
+        if (vertexBufferSize == 0 || indexBufferSize == 0)
+        {
+            //empty mesh?
+            renderData->vertexBuffer.buffer = VK_NULL_HANDLE;
+            renderData->ready = false;
+
+            mesh.renderData = renderData;
+            continue;
+        }
+
         //Create buffers
-        CreateBuffer(allocator, indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, renderData->indexBuffer.buffer,
+        CreateBuffer(allocator, indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY,
+                     renderData->indexBuffer.buffer,
                      renderData->indexBuffer.allocation);
-        CreateBuffer(allocator, vertexBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, renderData->vertexBuffer.buffer,
+        CreateBuffer(allocator, vertexBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY,
+                     renderData->vertexBuffer.buffer,
                      renderData->vertexBuffer.allocation);
+
 
         //Write data to them
         WriteToBuffer(allocator, renderData->indexBuffer.buffer, mesh.indices, indexBufferSize, commandPool, device, graphicsQueue);
         WriteToBuffer(allocator, renderData->vertexBuffer.buffer, mesh.vertices, vertexBufferSize, commandPool, device, graphicsQueue);
 
-        mesh.renderData = std::static_pointer_cast<void>(renderData);
+        renderData->ready = true;
+
+        mesh.renderData = renderData;
     }
 }
 
@@ -1299,9 +1310,12 @@ void VulkanRenderer::DestroyModel(Model &model)
     for (size_t i = 0; i < model.meshCount; i++)
     {
         Mesh &mesh = model.meshes[i];
-        auto renderData = std::static_pointer_cast<VulkanRenderData>(mesh.renderData);
+        auto renderData = (VulkanRenderData *) mesh.renderData;
 
         vmaDestroyBuffer(allocator, renderData->indexBuffer.buffer, renderData->indexBuffer.allocation);
         vmaDestroyBuffer(allocator, renderData->vertexBuffer.buffer, renderData->vertexBuffer.allocation);
+
+        delete renderData;
+        mesh.renderData = nullptr;
     }
 }

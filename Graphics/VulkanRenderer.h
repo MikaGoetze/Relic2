@@ -256,7 +256,7 @@ private:
 
     void SetupImGui();
 
-    void UpdateCommandBuffers();
+    void UpdateCommandBuffer(uint32_t frame);
 };
 
 

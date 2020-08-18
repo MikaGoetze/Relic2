@@ -43,7 +43,7 @@ void Relic::Initialise()
     window = new Window(800, 600, "Relic", true);
 
     //Load test model
-    GUID guid = resourceManager->ImportResource("Resources/Models/cottage.fbx", REL_STRUCTURE_TYPE_MODEL);
+    GUID guid = resourceManager->ImportResource("Resources/Models/Handgun.fbx", REL_STRUCTURE_TYPE_MODEL);
     Model* model = resourceManager->GetSimpleResourceData<Model>(guid);
 
 //    ImGui::CreateContext();

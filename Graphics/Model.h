@@ -23,13 +23,13 @@ struct Mesh : RelicStruct
 {
    uint32_t sType = REL_STRUCTURE_TYPE_MESH;
 
-   Vertex * vertices;
+   Vertex * vertices = nullptr;
    size_t vertexCount;
 
-   uint32_t * indices;
+   uint32_t * indices = nullptr;
    size_t indexCount;
 
-   std::shared_ptr<void> renderData;
+   void* renderData = nullptr;
 
     GUID guid;
 } ;
@@ -44,9 +44,9 @@ struct Model : RelicStruct
 {
     RelicType sType = REL_STRUCTURE_TYPE_MODEL;
     size_t meshCount;
-    Mesh * meshes;
+    Mesh * meshes = nullptr;
     size_t materialCount;
-    Material* materials;
+    Material* materials = nullptr;
 
     GUID guid;
 };
