@@ -6,6 +6,7 @@
 #include <Graphics/VulkanRenderer.h>
 #include <Debugging/Logger.h>
 #include "Relic.h"
+#include "Time.h"
 
 Relic::Relic()
 {
@@ -43,7 +44,7 @@ void Relic::Initialise()
     window = new Window(800, 600, "Relic", true);
 
     //Load test model
-    GUID guid = resourceManager->ImportResource("Resources/Models/Handgun.fbx", REL_STRUCTURE_TYPE_MODEL);
+    GUID guid = resourceManager->ImportResource("Resources/Models/cottage.fbx", REL_STRUCTURE_TYPE_MODEL);
     Model* model = resourceManager->GetSimpleResourceData<Model>(guid);
 
     ImGui::CreateContext();
@@ -66,6 +67,7 @@ void Relic::GameLoop()
     while (!window->ShouldClose() && isRunning)
     {
         glfwPollEvents();
+        Time::Update();
 
         // Start the ImGui frame
         ImGui_ImplVulkan_NewFrame();
@@ -74,7 +76,32 @@ void Relic::GameLoop()
 
         ImGui::Begin("Stats", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
+        ImGui::Text("Frame Info");
+        ImGui::PlotLines("", Time::frameTimes, Time::FRAME_COUNT, 0, nullptr, 0.0f, Time::averageTime * 2.0f);
 
+        ImGui::Columns(3);
+        ImGui::Separator();
+        ImGui::Text("ID");
+        ImGui::NextColumn();
+        ImGui::Text("CRNT");
+        ImGui::NextColumn();
+        ImGui::Text("AVG");
+        ImGui::Separator();
+
+        ImGui::NextColumn();
+        ImGui::Text("FRMT");
+        ImGui::NextColumn();
+        ImGui::Text("%.5fms", Time::DeltaTime());
+        ImGui::NextColumn();
+        ImGui::Text("%.5fms", Time::averageTime);
+        ImGui::Separator();
+
+        ImGui::NextColumn();
+        ImGui::Text("FPS");
+        ImGui::NextColumn();
+        ImGui::Text("%.0ffps", 1.0f / Time::DeltaTime());
+        ImGui::NextColumn();
+        ImGui::Text("%.0ffps", 1.0f / Time::averageTime);
 
         ImGui::End();
 

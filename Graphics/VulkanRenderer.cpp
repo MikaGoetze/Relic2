@@ -1072,7 +1072,7 @@ void VulkanRenderer::UpdateUniformBuffers(uint32_t currentImage)
 
     UniformBufferObject ubo = {};
     ubo.model = glm::rotate(glm::rotate(glm::identity<glm::mat4>(), time * glm::radians(45.0f), glm::vec3(0, 1, 0)), glm::radians(-90.0f), glm::vec3(1, 0, 0));
-    ubo.view = glm::lookAt(glm::vec3(5), glm::zero<glm::vec3>(), glm::vec3(0, 1, 0));
+    ubo.view = glm::lookAt(glm::vec3(30), glm::zero<glm::vec3>(), glm::vec3(0, 1, 0));
     ubo.proj = glm::perspective(glm::radians(45.0f), swapchainImageExtent.width / (float) swapchainImageExtent.height, 1.0f, 200.0f);
 
     //counteract opengl flip
