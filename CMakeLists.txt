@@ -18,20 +18,13 @@ add_subdirectory(MemoryManager)
 add_subdirectory(ResourceManager)
 add_subdirectory(Graphics)
 add_subdirectory(Importers)
-add_subdirectory(IMGUI)
+add_subdirectory(Libraries)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR})
 
 find_package(Vulkan REQUIRED)
 find_package(glfw3 REQUIRED)
 include_directories(.)
-
-#Old stuff
-#include_directories(/usr/local/include)
-#include_directories(~/Documents/vulkan-sdk/macOS/include)
-#link_directories(/usr/local/lib)
-#link_directories(~/Documents/vulkan-sdk/macOS/lib)
-#link_directories(${Vulkan_LIBRARY})
 
 include_directories(${Vulkan_INCLUDE_DIRS})
 include_directories(${GLFW_INCLUDE_DIR})
