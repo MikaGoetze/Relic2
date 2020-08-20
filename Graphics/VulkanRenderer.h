@@ -14,9 +14,7 @@
 #include "OpenFBX/ofbx.h"
 #include "Model.h"
 #include <glm/glm.hpp>
-#include "../IMGUI/imgui.h"
-#include "../IMGUI/imgui_impl_vulkan.h"
-#include "../IMGUI/imgui_impl_glfw.h"
+#include <Libraries/IMGUI/imgui.h>
 
 struct QueueFamilyIndices
 {

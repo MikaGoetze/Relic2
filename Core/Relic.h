@@ -38,6 +38,8 @@ private:
     bool isRunning;
 
     void DrawFrame();
+
+    ImGuiContext *imGuiContext;
 };
 
 

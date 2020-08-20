@@ -19,6 +19,8 @@
 #include "VulkanUtils.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include "VulkanModelExtensions.h"
+#include <Libraries/IMGUI/imgui_impl_vulkan.h>
+#include <Libraries/IMGUI/imgui_impl_glfw.h>
 
 
 #pragma clang diagnostic push
@@ -138,13 +140,15 @@ bool VulkanRenderer::ExtensionSupported(const char *extensionName)
 
 VulkanRenderer::~VulkanRenderer()
 {
+    VulkanRenderer::DestroyModel(*model);
+
+    ImGui_ImplVulkan_DestroyFontUploadObjects();
+    ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+
     CleanupSwapchain();
 
     vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-
-    VulkanRenderer::DestroyModel(*model);
-
-    ImGui_ImplVulkan_Shutdown();
 
     vmaDestroyAllocator(allocator);
 
@@ -885,6 +889,8 @@ void VulkanRenderer::CreateSynchronisationObjects()
 
 void VulkanRenderer::Render()
 {
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
     vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
@@ -993,9 +999,10 @@ void VulkanRenderer::RecreateSwapChain()
     while (window->IsMinimized()) glfwWaitEvents();
 
     vkDeviceWaitIdle(device);
+    ImGui::Render();
 
     CleanupSwapchain();
-    ImGui_ImplVulkan_Shutdown();
+//    ImGui_ImplVulkan_Shutdown();
 
     CreateSwapChain();
     CreateSwapchainImageViews();

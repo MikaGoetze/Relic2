@@ -7,6 +7,9 @@
 #include <Debugging/Logger.h>
 #include "Relic.h"
 #include "Time.h"
+#include <Libraries/IMGUI/imgui.h>
+#include <Libraries/IMGUI/imgui_impl_vulkan.h>
+#include <Libraries/IMGUI/imgui_impl_glfw.h>
 
 Relic::Relic()
 {
@@ -47,7 +50,7 @@ void Relic::Initialise()
     GUID guid = resourceManager->ImportResource("Resources/Models/cottage.fbx", REL_STRUCTURE_TYPE_MODEL);
     Model* model = resourceManager->GetSimpleResourceData<Model>(guid);
 
-    ImGui::CreateContext();
+    imGuiContext = ImGui::CreateContext();
     ImGui::StyleColorsDark();
 
     renderer = new VulkanRenderer(window, model, true);
@@ -70,8 +73,7 @@ void Relic::GameLoop()
         Time::Update();
 
         // Start the ImGui frame
-        ImGui_ImplVulkan_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
+
         ImGui::NewFrame();
 
         ImGui::Begin("Stats", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
@@ -113,6 +115,7 @@ void Relic::GameLoop()
 
 void Relic::Cleanup()
 {
+    ImGui::DestroyContext(imGuiContext);
     delete renderer;
     delete window;
     glfwTerminate();
