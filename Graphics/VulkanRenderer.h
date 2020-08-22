@@ -37,7 +37,7 @@ struct SwapChainSupportDetails
 class VulkanRenderer : public Renderer
 {
 public:
-    explicit VulkanRenderer(Window *window, Model* model, bool enableValidation = false);
+    explicit VulkanRenderer(Window *window, bool enableValidation = false);
 
     ~VulkanRenderer() override;
 
@@ -119,9 +119,10 @@ private:
     /// Create a surface.
     void CreateSurface();
 
-    void Render() override;
-
 public:
+    void RenderMesh(Mesh &mesh) override;
+    void EndFrame() override;
+    void StartFrame() override;
     void PrepareModel(Model &model) override;
     void DestroyModel(Model &model) override;
 
@@ -216,8 +217,6 @@ private:
 
     VmaAllocator allocator;
 
-    Model *model;
-
     std::vector<VkImageView> swapchainImageViews;
 
     void CreateDescriptorSetLayout();
@@ -249,12 +248,18 @@ private:
         glm::mat4 view;
         glm::mat4 proj;
     };
+public:
+    void Tick(World& world) override;
 
+private:
     void UpdateUniformBuffers(uint32_t currentImage);
 
     void SetupImGui();
 
-    void UpdateCommandBuffer(uint32_t frame);
+    void StartCommandBuffer(uint32_t frame);
+    void EndCommandBuffer(uint32_t frame);
+
+    uint32_t imageIndex;
 };
 
 

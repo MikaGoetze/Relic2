@@ -60,8 +60,12 @@ bool VulkanRenderer::CreateInstance()
     return true;
 }
 
-VulkanRenderer::VulkanRenderer(Window *window, Model *model, bool enableValidation) : Renderer(window)
+VulkanRenderer::VulkanRenderer(Window *window, bool enableValidation) : Renderer(window)
 {
+    //Setup system parameters
+    NeedsFrameTick = true;
+    NeedsTick = false;
+
     instance = VkInstance{};
     supportedExtensionCount = 0;
     supportedExtensions = nullptr;
@@ -71,7 +75,6 @@ VulkanRenderer::VulkanRenderer(Window *window, Model *model, bool enableValidati
     validationLayersEnabled = enableValidation;
     debugMessenger = {};
     imGuiDrawData = nullptr;
-    this->model = model;
 
     int vulkanSupported = glfwVulkanSupported();
     if (vulkanSupported == GLFW_FALSE)
@@ -140,8 +143,6 @@ bool VulkanRenderer::ExtensionSupported(const char *extensionName)
 
 VulkanRenderer::~VulkanRenderer()
 {
-    VulkanRenderer::DestroyModel(*model);
-
     ImGui_ImplVulkan_DestroyFontUploadObjects();
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplGlfw_Shutdown();
@@ -846,8 +847,6 @@ void VulkanRenderer::CreateCommandPool()
 
 void VulkanRenderer::CreateCommandBuffers(bool isRecreate)
 {
-    if(!isRecreate) PrepareModel(*model);
-
     commandBuffers.resize(swapchainFrameBuffers.size());
 
     VkCommandBufferAllocateInfo allocateInfo = {};
@@ -887,7 +886,7 @@ void VulkanRenderer::CreateSynchronisationObjects()
     }
 }
 
-void VulkanRenderer::Render()
+void VulkanRenderer::StartFrame()
 {
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -895,6 +894,7 @@ void VulkanRenderer::Render()
 
     uint32_t imageIndex;
     VkResult result = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+    this->imageIndex = imageIndex;
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
@@ -913,51 +913,7 @@ void VulkanRenderer::Render()
     imagesInFlight[imageIndex] = inFlightFences[currentFrame];
 
     UpdateUniformBuffers(imageIndex);
-    UpdateCommandBuffer(imageIndex);
-
-    VkSubmitInfo submitInfo = {};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-    VkSemaphore waitSemaphores[] = {imageAvailableSemaphores[currentFrame]};
-    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = waitSemaphores;
-    submitInfo.pWaitDstStageMask = waitStages;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
-
-    VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = signalSemaphores;
-
-    vkResetFences(device, 1, &inFlightFences[currentFrame]);
-
-    if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to submit draw command buffer.");
-    }
-
-    VkPresentInfoKHR presentInfo = {};
-    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = signalSemaphores;
-
-    VkSwapchainKHR swapchains[] = {swapchain};
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = swapchains;
-    presentInfo.pImageIndices = &imageIndex;
-
-    result = vkQueuePresentKHR(presentationQueue, &presentInfo);
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized)
-    {
-        framebufferResized = false;
-        RecreateSwapChain();
-    } else if (result != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to present swapchain image.");
-    }
-
-    currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    StartCommandBuffer(imageIndex);
 }
 
 void VulkanRenderer::FinishPendingRenderingOperations()
@@ -1217,7 +1173,7 @@ void VulkanRenderer::SetupImGui()
     ImGui_ImplVulkan_DestroyFontUploadObjects();
 }
 
-void VulkanRenderer::UpdateCommandBuffer(uint32_t frame)
+void VulkanRenderer::StartCommandBuffer(uint32_t frame)
 {
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -1244,33 +1200,7 @@ void VulkanRenderer::UpdateCommandBuffer(uint32_t frame)
     vkCmdBeginRenderPass(commandBuffers[frame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdBindPipeline(commandBuffers[frame], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-    VkDeviceSize offsets[1] = {0};
-
     vkCmdBindDescriptorSets(commandBuffers[frame], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[frame], 0, nullptr);
-
-    for (size_t m = 0; m < model->meshCount; m++)
-    {
-        auto mesh = model->meshes[m];
-        auto renderData = (VulkanRenderData *) mesh.renderData;
-
-        if (renderData == nullptr || !renderData->ready) continue;
-
-        vkCmdBindVertexBuffers(commandBuffers[frame], 0, 1, &renderData->vertexBuffer.buffer, offsets);
-        vkCmdBindIndexBuffer(commandBuffers[frame], renderData->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-        vkCmdDrawIndexed(commandBuffers[frame], mesh.indexCount, 1, 0, 0, 0);
-    }
-
-    //Dear IMGUI
-    ImGui::Render();
-    imGuiDrawData = ImGui::GetDrawData();
-    if (imGuiDrawData != nullptr) ImGui_ImplVulkan_RenderDrawData(imGuiDrawData, commandBuffers[frame]);
-
-    vkCmdEndRenderPass(commandBuffers[frame]);
-
-    if (vkEndCommandBuffer(commandBuffers[frame]) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to record command buffer.");
-    }
 }
 
 void VulkanRenderer::PrepareModel(Model &model)
@@ -1328,4 +1258,84 @@ void VulkanRenderer::DestroyModel(Model &model)
         delete renderData;
         mesh.renderData = nullptr;
     }
+}
+
+void VulkanRenderer::RenderMesh(Mesh &mesh)
+{
+    auto renderData = (VulkanRenderData *) mesh.renderData;
+    if (renderData == nullptr || !renderData->ready) return;
+
+    VkDeviceSize offset = 0;
+
+    vkCmdBindVertexBuffers(commandBuffers[imageIndex], 0, 1, &renderData->vertexBuffer.buffer, &offset);
+    vkCmdBindIndexBuffer(commandBuffers[imageIndex], renderData->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdDrawIndexed(commandBuffers[imageIndex], mesh.indexCount, 1, 0, 0, 0);
+}
+
+void VulkanRenderer::EndFrame()
+{
+    //Draw ImGUI, and finish command buffer recording.
+    ImGui::Render();
+    imGuiDrawData = ImGui::GetDrawData();
+    if (imGuiDrawData != nullptr) ImGui_ImplVulkan_RenderDrawData(imGuiDrawData, commandBuffers[imageIndex]);
+
+    EndCommandBuffer(imageIndex);
+
+    VkSubmitInfo submitInfo = {};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+    VkSemaphore waitSemaphores[] = {imageAvailableSemaphores[currentFrame]};
+    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = waitSemaphores;
+    submitInfo.pWaitDstStageMask = waitStages;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
+
+    VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = signalSemaphores;
+
+    vkResetFences(device, 1, &inFlightFences[currentFrame]);
+
+    if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to submit draw command buffer.");
+    }
+
+    VkPresentInfoKHR presentInfo = {};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = signalSemaphores;
+
+    VkSwapchainKHR swapchains[] = {swapchain};
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = swapchains;
+    presentInfo.pImageIndices = &imageIndex;
+
+    VkResult result = vkQueuePresentKHR(presentationQueue, &presentInfo);
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized)
+    {
+        framebufferResized = false;
+        RecreateSwapChain();
+    } else if (result != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to present swapchain image.");
+    }
+
+    currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+}
+
+void VulkanRenderer::EndCommandBuffer(uint32_t frame)
+{
+    vkCmdEndRenderPass(commandBuffers[frame]);
+
+    if (vkEndCommandBuffer(commandBuffers[frame]) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to record command buffer.");
+    }
+}
+
+void VulkanRenderer::Tick(World& world)
+{
 }

@@ -12,6 +12,7 @@
 #include <Graphics/VulkanRenderer.h>
 #include <ResourceManager/ResourceManager.h>
 #include <MemoryManager/MemoryManager.h>
+#include "World.h"
 
 class Relic
 {
@@ -31,15 +32,28 @@ private:
 
     void Cleanup();
 
+    void DebugInit();
+    void DebugDestroy();
+
     Window *window;
     Renderer *renderer;
+
+    std::vector<World*> worlds;
+
     ResourceManager *resourceManager;
     MemoryManager *memoryManager;
     bool isRunning;
 
-    void DrawFrame();
+    float tickLength = 1.0f / 30.0f;
 
     ImGuiContext *imGuiContext;
+
+    void DrawRenderDebugWidget();
+
+    void CreateCoreSystems();
+
+    //TEMP
+    Model *model;
 };
 
 

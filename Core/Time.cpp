@@ -8,20 +8,20 @@
 
 float Time::CurrentTime()
 {
-    return currentFrame;
+    return currentTime;
 }
 
-float Time::DeltaTime()
+float Time::FrameDelta()
 {
-    return currentFrame - lastFrame;
+    return currentTime - lastFrame;
 }
 
 void Time::Update()
 {
-    lastFrame = currentFrame;
-    currentFrame = glfwGetTime();
+    lastFrame = currentTime;
+    currentTime = glfwGetTime();
 
-    float currentDelta = DeltaTime();
+    float currentDelta = FrameDelta();
     averageTime = (0.05f * currentDelta) + (0.95f * averageTime);
 
     if(currentFrameIndex < FRAME_COUNT)
@@ -36,8 +36,20 @@ void Time::Update()
     }
 }
 
+float Time::TickDelta()
+{
+    return currentTime - lastTick;
+}
+
+void Time::Tick()
+{
+    lastTick = currentTime;
+}
+
+
 float Time::frameTimes[FRAME_COUNT];
 size_t Time::currentFrameIndex = 0;
 float Time::lastFrame;
-float Time::currentFrame;
+float Time::currentTime;
+float Time::lastTick;
 float Time::averageTime;

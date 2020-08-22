@@ -12,8 +12,9 @@ class Time
 private:
     static const size_t FRAME_COUNT = 512;
 
-    static float currentFrame;
+    static float currentTime;
     static float lastFrame;
+    static float lastTick;
     static float averageTime;
 
     static float frameTimes[FRAME_COUNT];
@@ -25,7 +26,10 @@ private:
 
 public:
     static float CurrentTime();
-    static float DeltaTime();
+    static float FrameDelta();
+    static float TickDelta();
+
+    static void Tick();
 };
 
 
