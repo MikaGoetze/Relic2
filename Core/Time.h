@@ -22,7 +22,7 @@ private:
 
     friend class Relic;
 
-    static void Update();
+    static void FrameTick();
 
 public:
     static float CurrentTime();

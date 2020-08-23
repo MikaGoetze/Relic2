@@ -16,7 +16,7 @@ float Time::FrameDelta()
     return currentTime - lastFrame;
 }
 
-void Time::Update()
+void Time::FrameTick()
 {
     lastFrame = currentTime;
     currentTime = glfwGetTime();

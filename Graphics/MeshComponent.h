@@ -6,6 +6,9 @@
 #define RELIC_MESHCOMPONENT_H
 
 #include <Importers/ImportUtil.h>
+#include "Model.h"
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 
 struct MeshComponent
 {

@@ -12,6 +12,9 @@
 #include <Libraries/IMGUI/imgui_impl_glfw.h>
 #include <Graphics/MeshComponent.h>
 #include <Core/Components/TransformComponent.h>
+#include <Graphics/CameraComponent.h>
+#include <Core/Systems/MeshRotator.h>
+
 
 Relic::Relic()
 {
@@ -61,6 +64,7 @@ void Relic::Initialise()
     ImGui::StyleColorsDark();
 
     CreateCoreSystems();
+    CreateDefaultWorldObjects();
 
     // Start the Dear ImGui frame
     ImGui_ImplVulkan_NewFrame();
@@ -77,13 +81,11 @@ void Relic::GameLoop()
     while (!window->ShouldClose() && isRunning)
     {
         glfwPollEvents();
-        Time::Update();
 
         bool shouldTick = false;
 
         if (Time::TickDelta() > tickLength)
         {
-            Time::Tick();
             shouldTick = true;
         }
 
@@ -94,6 +96,9 @@ void Relic::GameLoop()
             if(shouldTick) world->Tick();
             world->FrameTick();
         }
+
+        if(shouldTick) Time::Tick();
+        Time::FrameTick();
     }
 
     renderer->FinishPendingRenderingOperations();
@@ -139,6 +144,12 @@ void Relic::Cleanup()
 {
     DebugDestroy();
     ImGui::DestroyContext(imGuiContext);
+
+    for(auto world : worlds)
+    {
+        delete world;
+    }
+
     delete renderer;
     delete window;
     glfwTerminate();
@@ -161,11 +172,22 @@ void Relic::DebugInit()
     {
         auto entity = registry->create();
         registry->emplace<MeshComponent>(entity, &model->meshes[i], model->meshes[i].guid);
-        registry->emplace<TransformComponent>(entity);
+        registry->emplace<TransformComponent>(entity, glm::zero<glm::vec3>(), glm::one<glm::vec3>(), glm::quat(glm::vec3(-glm::radians(90.0f), 0, 0)));
     }
+
+    worlds[0]->RegisterSystem(new MeshRotator());
 }
 
 void Relic::DebugDestroy()
 {
     renderer->DestroyModel(*model);
+}
+
+void Relic::CreateDefaultWorldObjects()
+{
+    auto registry = worlds[0]->Registry();
+    auto camera = registry->create();
+
+    registry->emplace<CameraComponent>(camera, 45.0f, 0.5f, 200.0f, true);
+    registry->emplace<TransformComponent>(camera, glm::vec3(0, 30, -60), glm::one<glm::vec3>(), glm::vec3(-glm::radians(-30.0f), 0, 0));
 }

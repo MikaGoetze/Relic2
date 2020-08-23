@@ -54,6 +54,8 @@ private:
 
     //TEMP
     Model *model;
+
+    void CreateDefaultWorldObjects();
 };
 
 

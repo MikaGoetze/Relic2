@@ -18,6 +18,7 @@
 #include "VulkanRenderer.h"
 #include "VulkanUtils.h"
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include "VulkanModelExtensions.h"
 #include <Libraries/IMGUI/imgui_impl_vulkan.h>
 #include <Libraries/IMGUI/imgui_impl_glfw.h>
@@ -697,10 +698,17 @@ void VulkanRenderer::CreateGraphicsPipeline()
     colorBlending.attachmentCount = 1;
     colorBlending.pAttachments = &colorBlendAttachment;
 
+    VkPushConstantRange pushConstants = {};
+    pushConstants.offset = 0;
+    pushConstants.size = sizeof(PushConstants);
+    pushConstants.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = 1;
     pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstants;
 
     if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
     {
@@ -1028,20 +1036,20 @@ void VulkanRenderer::CreateUniformBuffers()
 
 void VulkanRenderer::UpdateUniformBuffers(uint32_t currentImage)
 {
-    static auto startTime = std::chrono::high_resolution_clock::now();
-    auto currentTime = std::chrono::high_resolution_clock::now();
-
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-    UniformBufferObject ubo = {};
-    ubo.model = glm::rotate(glm::rotate(glm::identity<glm::mat4>(), time * glm::radians(45.0f), glm::vec3(0, 1, 0)), glm::radians(-90.0f), glm::vec3(1, 0, 0));
-    ubo.view = glm::lookAt(glm::vec3(30), glm::zero<glm::vec3>(), glm::vec3(0, 1, 0));
-    ubo.proj = glm::perspective(glm::radians(45.0f), swapchainImageExtent.width / (float) swapchainImageExtent.height, 1.0f, 200.0f);
-
-    //counteract opengl flip
-    ubo.proj[1][1] *= -1;
-
-    WriteToBufferDirect(allocator, uniformBufferAllocations[currentImage], &ubo, sizeof(UniformBufferObject));
+//    static auto startTime = std::chrono::high_resolution_clock::now();
+//    auto currentTime = std::chrono::high_resolution_clock::now();
+//
+//    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+//
+//    UniformBufferObject ubo = {};
+//    ubo.model = glm::rotate(glm::rotate(glm::identity<glm::mat4>(), time * glm::radians(45.0f), glm::vec3(0, 1, 0)), glm::radians(-90.0f), glm::vec3(1, 0, 0));
+//    ubo.view = glm::lookAt(glm::vec3(30), glm::zero<glm::vec3>(), glm::vec3(0, 1, 0));
+//    ubo.proj = glm::perspective(glm::radians(45.0f), swapchainImageExtent.width / (float) swapchainImageExtent.height, 1.0f, 200.0f);
+//
+//    //counteract opengl flip
+//    ubo.proj[1][1] *= -1;
+//
+//    WriteToBufferDirect(allocator, uniformBufferAllocations[currentImage], &ubo, sizeof(UniformBufferObject));
 }
 
 void VulkanRenderer::CreateDescriptorSetPool()
@@ -1260,12 +1268,20 @@ void VulkanRenderer::DestroyModel(Model &model)
     }
 }
 
-void VulkanRenderer::RenderMesh(Mesh &mesh)
+void VulkanRenderer::RenderMesh(Mesh &mesh, TransformComponent transform)
 {
     auto renderData = (VulkanRenderData *) mesh.renderData;
     if (renderData == nullptr || !renderData->ready) return;
 
     VkDeviceSize offset = 0;
+
+    PushConstants pushConstants = {};
+    glm::mat4 model = glm::scale(glm::identity<glm::mat4>(), transform.scale);
+    model = glm::toMat4(transform.rotation) * model;
+    model = glm::translate(model, transform.position);
+    pushConstants.mvp = vpMatrix * model;
+
+    vkCmdPushConstants(commandBuffers[imageIndex], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &pushConstants);
 
     vkCmdBindVertexBuffers(commandBuffers[imageIndex], 0, 1, &renderData->vertexBuffer.buffer, &offset);
     vkCmdBindIndexBuffer(commandBuffers[imageIndex], renderData->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);

@@ -15,6 +15,7 @@
 #include "Model.h"
 #include <glm/glm.hpp>
 #include <Libraries/IMGUI/imgui.h>
+#include <Core/Components/TransformComponent.h>
 
 struct QueueFamilyIndices
 {
@@ -120,7 +121,7 @@ private:
     void CreateSurface();
 
 public:
-    void RenderMesh(Mesh &mesh) override;
+    void RenderMesh(Mesh &mesh, TransformComponent transform) override;
     void EndFrame() override;
     void StartFrame() override;
     void PrepareModel(Model &model) override;
@@ -247,6 +248,11 @@ private:
         glm::mat4 model;
         glm::mat4 view;
         glm::mat4 proj;
+    };
+
+    struct PushConstants
+    {
+        glm::mat4 mvp;
     };
 public:
     void Tick(World& world) override;
