@@ -65,13 +65,12 @@ void *ResourceManager::GetResourceData(uint_fast32_t guid, bool forceReload)
     if (importer == nullptr)
     {
         //Then we assume it's just raw data.
-        Logger::Log(3, "[ResourceManager] [WRN] Could not find importer for type ", std::to_string(type).c_str(),
-                    " assuming no import is needed.");
+        Logger::Log("[ResourceManager] [WRN] Could not find importer for type %s assuming no import is needed.", std::to_string(type).c_str());
         return data;
     }
 
-    Logger::Log(std::to_string(resourceSize).c_str());
-    Logger::Log(std::to_string(type).c_str());
+    Logger::Log("%s", std::to_string(resourceSize).c_str());
+    Logger::Log("%s", std::to_string(type).c_str());
 
 
     return importer->Deserialize(data, resourceSize);

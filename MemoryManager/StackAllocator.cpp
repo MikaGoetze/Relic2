@@ -16,7 +16,7 @@ void *StackAllocator::Allocate(uint32_t size_bytes)
     //Make sure we have enough memory to service the request
     if(stack_top - current_marker < size_bytes)
     {
-        Logger::Log(1, "[StackAllocator] Cannot service memory request.");
+        Logger::Log("[StackAllocator] Cannot service memory request.");
         return nullptr;
     }
 

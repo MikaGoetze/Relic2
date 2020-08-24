@@ -4,16 +4,16 @@
 
 #include "World.h"
 
-entt::registry * World::Registry()
+entt::registry *World::Registry()
 {
     return &registry;
 }
 
 void World::Tick()
 {
-    for(auto system : systems)
+    for (auto system : systems)
     {
-        if(!system->NeedsTick) continue;
+        if (!system->NeedsTick) continue;
         system->Tick(*this);
     }
 }
@@ -26,9 +26,9 @@ void World::RegisterSystem(ISystem *system)
 void World::RemoveSystem(ISystem *system)
 {
     auto iterator = systems.begin();
-    while(iterator != systems.end())
+    while (iterator != systems.end())
     {
-        if(*iterator == system)
+        if (*iterator == system)
         {
             systems.erase(iterator);
             break;
@@ -38,10 +38,24 @@ void World::RemoveSystem(ISystem *system)
 
 void World::FrameTick()
 {
-    for(auto system : systems)
+    for (auto system : systems)
     {
-        if(!system->NeedsFrameTick) continue;
+        if (!system->NeedsFrameTick) continue;
         system->FrameTick(*this);
+    }
+}
+
+World::~World()
+{
+    //Cleanup all our entities
+    registry.each([this](auto entity)
+                  {
+                      registry.destroy(entity);
+                  });
+
+    for (auto system : systems)
+    {
+        system->Shutdown();
     }
 }
 

@@ -7,13 +7,14 @@
 #include "MeshComponent.h"
 #include "CameraComponent.h"
 #include <Core/World.h>
+#include <Core/Relic.h>
 
 Renderer::~Renderer()
 = default;
 
-Renderer::Renderer(Window *window)
+Renderer::Renderer()
 {
-    this->window = window;
+
 }
 
 void Renderer::FrameTick(World &world)
@@ -51,7 +52,28 @@ void Renderer::FrameTick(World &world)
         break;
     }
 
-
-
     EndFrame();
 }
+
+void Renderer::Init(World &world)
+{
+    NeedsFrameTick = true;
+    NeedsTick = false;
+    this->window = Relic::Instance()->GetActiveWindow();
+
+    world.Registry()->on_construct<MeshComponent>().connect<&Renderer::OnMeshComponentConstruction>(this);
+    world.Registry()->on_destroy<MeshComponent>().connect<&Renderer::OnMeshComponentDestruction>(this);
+}
+
+void Renderer::OnMeshComponentConstruction(entt::registry& registry, entt::entity entity)
+{
+    MeshComponent &comp = registry.get<MeshComponent>(entity);
+    PrepareMesh(*comp.mesh);
+}
+
+void Renderer::OnMeshComponentDestruction(entt::registry &registry, entt::entity entity)
+{
+    MeshComponent &comp = registry.get<MeshComponent>(entity);
+    CleanupMesh(*comp.mesh);
+}
+

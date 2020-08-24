@@ -4,14 +4,11 @@
 
 #include <Graphics/Window.h>
 #include <Graphics/VulkanRenderer.h>
-#include <Debugging/Logger.h>
 #include "Relic.h"
 #include "Time.h"
-#include <Libraries/IMGUI/imgui.h>
 #include <Libraries/IMGUI/imgui_impl_vulkan.h>
 #include <Libraries/IMGUI/imgui_impl_glfw.h>
 #include <Graphics/MeshComponent.h>
-#include <Core/Components/TransformComponent.h>
 #include <Graphics/CameraComponent.h>
 #include <Core/Systems/MeshRotator.h>
 
@@ -23,10 +20,14 @@ Relic::Relic()
     renderer = nullptr;
     resourceManager = nullptr;
     memoryManager = nullptr;
+
+    instance = this;
 }
 
 Relic::~Relic()
-= default;
+{
+    instance = nullptr;
+}
 
 void Relic::Start()
 {
@@ -41,10 +42,14 @@ void Relic::Shutdown()
     isRunning = false;
 }
 
-void Relic::CreateCoreSystems()
+void Relic::CreateSystems()
 {
-    renderer = new VulkanRenderer(window, true);
-    worlds[0]->RegisterSystem(renderer);
+    Logger::Log("Creating %i registered systems", ISystem::SystemRegistry().size());
+    for(auto system : ISystem::SystemRegistry())
+    {
+        worlds[0]->RegisterSystem(system);
+        system->Init(*worlds[0]);
+    }
 }
 
 void Relic::Initialise()
@@ -63,7 +68,7 @@ void Relic::Initialise()
     imGuiContext = ImGui::CreateContext();
     ImGui::StyleColorsDark();
 
-    CreateCoreSystems();
+    CreateSystems();
     CreateDefaultWorldObjects();
 
     // Start the Dear ImGui frame
@@ -100,8 +105,6 @@ void Relic::GameLoop()
         if(shouldTick) Time::Tick();
         Time::FrameTick();
     }
-
-    renderer->FinishPendingRenderingOperations();
 }
 
 void Relic::DrawRenderDebugWidget()
@@ -142,15 +145,15 @@ void Relic::DrawRenderDebugWidget()
 
 void Relic::Cleanup()
 {
-    DebugDestroy();
-    ImGui::DestroyContext(imGuiContext);
 
     for(auto world : worlds)
     {
         delete world;
     }
 
-    delete renderer;
+    ImGui::DestroyContext(imGuiContext);
+    DebugDestroy();
+
     delete window;
     glfwTerminate();
 
@@ -164,7 +167,6 @@ void Relic::DebugInit()
     //Load test model
     GUID guid = resourceManager->ImportResource("Resources/Models/cottage.fbx", REL_STRUCTURE_TYPE_MODEL);
     model = resourceManager->GetSimpleResourceData<Model>(guid);
-    renderer->PrepareModel(*model);
 
     auto registry = worlds[0]->Registry();
 
@@ -174,13 +176,10 @@ void Relic::DebugInit()
         registry->emplace<MeshComponent>(entity, &model->meshes[i], model->meshes[i].guid);
         registry->emplace<TransformComponent>(entity, glm::zero<glm::vec3>(), glm::one<glm::vec3>(), glm::quat(glm::vec3(-glm::radians(90.0f), 0, 0)));
     }
-
-    worlds[0]->RegisterSystem(new MeshRotator());
 }
 
 void Relic::DebugDestroy()
 {
-    renderer->DestroyModel(*model);
 }
 
 void Relic::CreateDefaultWorldObjects()
@@ -191,3 +190,15 @@ void Relic::CreateDefaultWorldObjects()
     registry->emplace<CameraComponent>(camera, 45.0f, 0.5f, 200.0f, true);
     registry->emplace<TransformComponent>(camera, glm::vec3(0, 30, -60), glm::one<glm::vec3>(), glm::vec3(-glm::radians(-30.0f), 0, 0));
 }
+
+const Relic *Relic::Instance()
+{
+    return static_cast<const Relic*>(instance);
+}
+
+Window *Relic::GetActiveWindow() const
+{
+    return window;
+}
+
+Relic* Relic::instance = nullptr;

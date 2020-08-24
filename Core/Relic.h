@@ -18,12 +18,12 @@ class Relic
 {
 public:
     Relic();
-
     ~Relic();
-
     void Start();
-
     void Shutdown();
+
+    static const Relic* Instance();
+    Window* GetActiveWindow() const;
 
 private:
     void Initialise();
@@ -38,6 +38,8 @@ private:
     Window *window;
     Renderer *renderer;
 
+    static Relic* instance;
+
     std::vector<World*> worlds;
 
     ResourceManager *resourceManager;
@@ -50,7 +52,7 @@ private:
 
     void DrawRenderDebugWidget();
 
-    void CreateCoreSystems();
+    void CreateSystems();
 
     //TEMP
     Model *model;

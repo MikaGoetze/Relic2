@@ -5,14 +5,13 @@
 #ifndef RELIC_2_0_LOGGER_H
 #define RELIC_2_0_LOGGER_H
 
-
-#include <cstdarg>
-
 class Logger
 {
+private:
+    static char * Convert(unsigned int num, int base);
+
 public:
-    static void Log(int messageCount, ...);
-    static void Log(const char* message);
+    static void Log(const char* format, ...);
 };
 
 

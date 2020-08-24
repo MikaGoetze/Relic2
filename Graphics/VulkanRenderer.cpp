@@ -6,6 +6,7 @@
 #define VMA_IMPLEMENTATION
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define VALIDATION_ENABLED true
 
 #include <GLFW/glfw3.h>
 #include <Debugging/Logger.h>
@@ -51,77 +52,27 @@ bool VulkanRenderer::CreateInstance()
 
     if (vkCreateInstance(&instanceCreateInfo, nullptr, &instance) != VK_SUCCESS)
     {
-        Logger::Log(1, "[VulkanRenderer] Failed to create instance...");
+        Logger::Log("[VulkanRenderer] Failed to create instance...");
         return false;
     }
-    Logger::Log(1, "[VulkanRenderer] Created instance successfully.");
+    Logger::Log("[VulkanRenderer] Created instance successfully.");
 
     delete extensions;
     if (instanceCreateInfo.pNext != nullptr) delete (VkDebugUtilsMessengerCreateInfoEXT *) instanceCreateInfo.pNext;
     return true;
 }
 
-VulkanRenderer::VulkanRenderer(Window *window, bool enableValidation) : Renderer(window)
+VulkanRenderer::VulkanRenderer() : Renderer()
 {
-    //Setup system parameters
-    NeedsFrameTick = true;
-    NeedsTick = false;
-
     instance = VkInstance{};
     supportedExtensionCount = 0;
     supportedExtensions = nullptr;
     supportedValidationLayers = nullptr;
     supportedValidationLayersCount = 0;
     enabledValidationLayers = new std::vector<const char *>();
-    validationLayersEnabled = enableValidation;
+    validationLayersEnabled = VALIDATION_ENABLED;
     debugMessenger = {};
     imGuiDrawData = nullptr;
-
-    int vulkanSupported = glfwVulkanSupported();
-    if (vulkanSupported == GLFW_FALSE)
-    {
-        Logger::Log("Vulkan is not supported.");
-        exit(0);
-    }
-
-    window->SetUserPointer(this);
-    window->RegisterWindowSizeChangedCallback(WindowResizedCallback);
-
-    //Try to create an instance, otherwise exit.
-    if (!CreateInstance()) exit(0);
-    InitialiseDebugMessenger();
-
-    CreateSurface();
-
-    if (!SelectPhysicalDevice())
-    {
-        Logger::Log(1, "[VulkanRenderer] Failed to pick physical device.");
-    } else
-    {
-        Logger::Log(1, "[VulkanRenderer] Selected physical device.");
-    }
-
-    CreateLogicalDevice();
-
-    //Create the allocator
-    CreateAllocator();
-
-    CreateSwapChain();
-    CreateSwapchainImageViews();
-    CreateRenderPass();
-    CreateDescriptorSetLayout();
-    CreateGraphicsPipeline();
-    CreateDepthResources();
-    CreateFrameBuffers();
-    CreateCommandPool();
-    CreateUniformBuffers();
-    CreateDescriptorSetPool();
-    CreateDescriptorSets();
-
-    CreateCommandBuffers(false);
-    CreateSynchronisationObjects();
-
-    SetupImGui();
 }
 
 bool VulkanRenderer::ExtensionSupported(const char *extensionName)
@@ -144,33 +95,7 @@ bool VulkanRenderer::ExtensionSupported(const char *extensionName)
 
 VulkanRenderer::~VulkanRenderer()
 {
-    ImGui_ImplVulkan_DestroyFontUploadObjects();
-    ImGui_ImplVulkan_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
 
-    CleanupSwapchain();
-
-    vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-
-    vmaDestroyAllocator(allocator);
-
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-    {
-        vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
-        vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
-        vkDestroyFence(device, inFlightFences[i], nullptr);
-    }
-
-    vkDestroyCommandPool(device, commandPool, nullptr);
-
-    delete supportedExtensions;
-    delete supportedValidationLayers;
-    delete enabledValidationLayers;
-    DestroyDebugMessenger(instance, debugMessenger, nullptr);
-
-    vkDestroyDevice(device, nullptr);
-    vkDestroySurfaceKHR(instance, surface, nullptr);
-    vkDestroyInstance(instance, nullptr);
 }
 
 bool VulkanRenderer::ValidationLayerSupported(const char *validationLayerName)
@@ -196,11 +121,11 @@ void VulkanRenderer::EnableValidationLayers(VkInstanceCreateInfo &createInfo, co
     {
         if (!ValidationLayerSupported(validationLayer))
         {
-            Logger::Log(3, "[VulkanRenderer] Validation layer ", validationLayer, " is not supported.");
+            Logger::Log("[VulkanRenderer] Validation layer %s is not supported.", validationLayer);
             continue;
         }
         enabledValidationLayers->push_back(validationLayer);
-        Logger::Log(2, "[VulkanRenderer] Found support for layer: ", validationLayer);
+        Logger::Log("[VulkanRenderer] Found support for layer: %s", validationLayer);
     }
 
     createInfo.enabledLayerCount = enabledValidationLayers->size();
@@ -229,11 +154,11 @@ std::vector<const char *> *VulkanRenderer::GetRequiredExtensions()
     {
         if (!ExtensionSupported(extension))
         {
-            Logger::Log(2, "[VulkanRenderer] Extension not available:", extension);
+            Logger::Log("[VulkanRenderer] Extension not available: %s", extension);
             continue;
         }
         extensions->push_back(extension);
-        Logger::Log(2, "[VulkanRenderer] Found support for: ", extension);
+        Logger::Log("[VulkanRenderer] Found support for: %s");
     }
 
     return extensions;
@@ -243,7 +168,7 @@ VkBool32 VulkanRenderer::ValidationCallback(VkDebugUtilsMessageSeverityFlagBitsE
                                             VkDebugUtilsMessageTypeFlagsEXT messageType,
                                             const VkDebugUtilsMessengerCallbackDataEXT *callbackData, void *userData)
 {
-    Logger::Log(2, "[ValidationMessage] ", callbackData->pMessage);
+    Logger::Log("[ValidationMessage] %s", callbackData->pMessage);
 
     return VK_FALSE;
 }
@@ -251,7 +176,7 @@ VkBool32 VulkanRenderer::ValidationCallback(VkDebugUtilsMessageSeverityFlagBitsE
 void VkErrorCallback(VkResult result)
 {
     if (result == VK_SUCCESS) return;
-    Logger::Log(2, "[ValidationMessage] ", result);
+    Logger::Log("[ValidationMessage] %s", result);
     if (result < 0) throw std::runtime_error("encountered error.");
 }
 
@@ -264,7 +189,7 @@ void VulkanRenderer::InitialiseDebugMessenger()
 
     if (CreateDebugMessenger(&instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS)
     {
-        Logger::Log(1, "[VulkanRenderer] Failed to create debug messenger");
+        Logger::Log("[VulkanRenderer] Failed to create debug messenger");
         return;
     }
 }
@@ -291,7 +216,7 @@ void VulkanRenderer::DestroyDebugMessenger(VkInstance instance, VkDebugUtilsMess
                                                                                 "vkDestroyDebugUtilsMessengerEXT");
     if (function != nullptr)
     {
-        Logger::Log(1, "[VulkanRenderer] Removed messenger.");
+        Logger::Log("[VulkanRenderer] Removed messenger.");
         function(instance, messenger, callback);
     }
 }
@@ -316,7 +241,7 @@ bool VulkanRenderer::SelectPhysicalDevice()
 
     if (numDevices == 0)
     {
-        Logger::Log(1, "[VulkanRenderer] Found no physical devices...");
+        Logger::Log("[VulkanRenderer] Found no physical devices...");
         return false;
     }
 
@@ -492,7 +417,7 @@ void VulkanRenderer::CreateLogicalDevice()
     vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
     vkGetDeviceQueue(device, indices.presentationFamily.value(), 0, &presentationQueue);
 
-    Logger::Log(1, "[VulkanRenderer] Created logical device successfully");
+    Logger::Log("[VulkanRenderer] Created logical device successfully");
 }
 
 void VulkanRenderer::CreateSurface()
@@ -580,7 +505,7 @@ void VulkanRenderer::CreateSwapChain()
     swapchainImageExtent = extent;
     swapchainImageFormat = format;
 
-    Logger::Log(1, "[VulkanRenderer] Created swap chain successfully.");
+    Logger::Log("[VulkanRenderer] Created swap chain successfully.");
 }
 
 SwapChainSupportDetails VulkanRenderer::QuerySwapChainSupport(VkPhysicalDevice device)
@@ -1211,61 +1136,54 @@ void VulkanRenderer::StartCommandBuffer(uint32_t frame)
     vkCmdBindDescriptorSets(commandBuffers[frame], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[frame], 0, nullptr);
 }
 
-void VulkanRenderer::PrepareModel(Model &model)
+void VulkanRenderer::PrepareMesh(Mesh &mesh)
 {
-    for (size_t i = 0; i < model.meshCount; i++)
+    auto renderData = new VulkanRenderData();
+    renderData->indexBuffer = {};
+    renderData->vertexBuffer = {};
+
+    VkDeviceSize vertexBufferSize = mesh.vertexCount * sizeof(Vertex);
+    VkDeviceSize indexBufferSize = mesh.indexCount * sizeof(uint32_t);
+
+    if (vertexBufferSize == 0 || indexBufferSize == 0)
     {
-        Mesh &mesh = model.meshes[i];
-
-        auto renderData = new VulkanRenderData();
-        renderData->indexBuffer = {};
-        renderData->vertexBuffer = {};
-
-        VkDeviceSize vertexBufferSize = mesh.vertexCount * sizeof(Vertex);
-        VkDeviceSize indexBufferSize = mesh.indexCount * sizeof(uint32_t);
-
-        if (vertexBufferSize == 0 || indexBufferSize == 0)
-        {
-            //empty mesh?
-            renderData->vertexBuffer.buffer = VK_NULL_HANDLE;
-            renderData->ready = false;
-
-            mesh.renderData = renderData;
-            continue;
-        }
-
-        //Create buffers
-        CreateBuffer(allocator, indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY,
-                     renderData->indexBuffer.buffer,
-                     renderData->indexBuffer.allocation);
-        CreateBuffer(allocator, vertexBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY,
-                     renderData->vertexBuffer.buffer,
-                     renderData->vertexBuffer.allocation);
-
-
-        //Write data to them
-        WriteToBuffer(allocator, renderData->indexBuffer.buffer, mesh.indices, indexBufferSize, commandPool, device, graphicsQueue);
-        WriteToBuffer(allocator, renderData->vertexBuffer.buffer, mesh.vertices, vertexBufferSize, commandPool, device, graphicsQueue);
-
-        renderData->ready = true;
+        //empty mesh?
+        renderData->vertexBuffer.buffer = VK_NULL_HANDLE;
+        renderData->ready = false;
 
         mesh.renderData = renderData;
+        return;
     }
+
+    //Create buffers
+    CreateBuffer(allocator, indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY,
+                 renderData->indexBuffer.buffer,
+                 renderData->indexBuffer.allocation);
+    CreateBuffer(allocator, vertexBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY,
+                 renderData->vertexBuffer.buffer,
+                 renderData->vertexBuffer.allocation);
+
+
+    //Write data to them
+    WriteToBuffer(allocator, renderData->indexBuffer.buffer, mesh.indices, indexBufferSize, commandPool, device, graphicsQueue);
+    WriteToBuffer(allocator, renderData->vertexBuffer.buffer, mesh.vertices, vertexBufferSize, commandPool, device, graphicsQueue);
+
+    renderData->ready = true;
+
+    mesh.renderData = renderData;
 }
 
-void VulkanRenderer::DestroyModel(Model &model)
+void VulkanRenderer::CleanupMesh(Mesh &mesh)
 {
-    for (size_t i = 0; i < model.meshCount; i++)
-    {
-        Mesh &mesh = model.meshes[i];
-        auto renderData = (VulkanRenderData *) mesh.renderData;
+    vkDeviceWaitIdle(device);
 
-        vmaDestroyBuffer(allocator, renderData->indexBuffer.buffer, renderData->indexBuffer.allocation);
-        vmaDestroyBuffer(allocator, renderData->vertexBuffer.buffer, renderData->vertexBuffer.allocation);
+    auto renderData = (VulkanRenderData *) mesh.renderData;
 
-        delete renderData;
-        mesh.renderData = nullptr;
-    }
+    vmaDestroyBuffer(allocator, renderData->indexBuffer.buffer, renderData->indexBuffer.allocation);
+    vmaDestroyBuffer(allocator, renderData->vertexBuffer.buffer, renderData->vertexBuffer.allocation);
+
+    delete renderData;
+    mesh.renderData = nullptr;
 }
 
 void VulkanRenderer::RenderMesh(Mesh &mesh, TransformComponent transform)
@@ -1352,6 +1270,92 @@ void VulkanRenderer::EndCommandBuffer(uint32_t frame)
     }
 }
 
-void VulkanRenderer::Tick(World& world)
+void VulkanRenderer::Tick(World &world)
 {
+}
+
+SystemRegistrar VulkanRenderer::registrar(new VulkanRenderer());
+
+void VulkanRenderer::Init(World &world)
+{
+    Renderer::Init(world);
+
+    int vulkanSupported = glfwVulkanSupported();
+    if (vulkanSupported == GLFW_FALSE)
+    {
+        Logger::Log("Vulkan is not supported.");
+        exit(0);
+    }
+
+    window->SetUserPointer(this);
+    window->RegisterWindowSizeChangedCallback(WindowResizedCallback);
+
+    //Try to create an instance, otherwise exit.
+    if (!CreateInstance()) exit(0);
+    InitialiseDebugMessenger();
+
+    CreateSurface();
+
+    if (!SelectPhysicalDevice())
+    {
+        Logger::Log("[VulkanRenderer] Failed to pick physical device.");
+    } else
+    {
+        Logger::Log("[VulkanRenderer] Selected physical device.");
+    }
+
+    CreateLogicalDevice();
+
+    //Create the allocator
+    CreateAllocator();
+
+    CreateSwapChain();
+    CreateSwapchainImageViews();
+    CreateRenderPass();
+    CreateDescriptorSetLayout();
+    CreateGraphicsPipeline();
+    CreateDepthResources();
+    CreateFrameBuffers();
+    CreateCommandPool();
+    CreateUniformBuffers();
+    CreateDescriptorSetPool();
+    CreateDescriptorSets();
+
+    CreateCommandBuffers(false);
+    CreateSynchronisationObjects();
+
+    SetupImGui();
+}
+
+void VulkanRenderer::Shutdown()
+{
+    FinishPendingRenderingOperations();
+
+    ImGui_ImplVulkan_DestroyFontUploadObjects();
+    ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+
+    CleanupSwapchain();
+
+    vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+
+    vmaDestroyAllocator(allocator);
+
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
+        vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
+        vkDestroyFence(device, inFlightFences[i], nullptr);
+    }
+
+    vkDestroyCommandPool(device, commandPool, nullptr);
+
+    delete supportedExtensions;
+    delete supportedValidationLayers;
+    delete enabledValidationLayers;
+    DestroyDebugMessenger(instance, debugMessenger, nullptr);
+
+    vkDestroyDevice(device, nullptr);
+    vkDestroySurfaceKHR(instance, surface, nullptr);
+    vkDestroyInstance(instance, nullptr);
 }

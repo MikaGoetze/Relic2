@@ -10,11 +10,17 @@
 
 class MeshRotator : public ISystem
 {
+private:
     void Tick(World &world) override;
     void FrameTick(World &world) override;
+    static SystemRegistrar registrar;
 
 public:
     MeshRotator();
+
+    void Init(World &world) override;
+
+    void Shutdown() override;
 };
 
 

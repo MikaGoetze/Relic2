@@ -38,12 +38,16 @@ struct SwapChainSupportDetails
 class VulkanRenderer : public Renderer
 {
 public:
-    explicit VulkanRenderer(Window *window, bool enableValidation = false);
-
+    explicit VulkanRenderer();
     ~VulkanRenderer() override;
 
+    void Init(World &world) override;
+
+    void Shutdown() override;
 
 private:
+    static SystemRegistrar registrar;
+
     VkInstance instance;
 
     /// Create a Vulkan Instance
@@ -124,8 +128,8 @@ public:
     void RenderMesh(Mesh &mesh, TransformComponent transform) override;
     void EndFrame() override;
     void StartFrame() override;
-    void PrepareModel(Model &model) override;
-    void DestroyModel(Model &model) override;
+    void PrepareMesh(Mesh &model) override;
+    void CleanupMesh(Mesh &mesh) override;
 
 private:
 

@@ -4,20 +4,82 @@
 
 #include <iostream>
 #include "Logger.h"
+#include <cstdarg>
 
-void Logger::Log(int messageCount, ...)
+void Logger::Log(const char *format, ...)
 {
-    va_list args;
-    va_start(args, messageCount);
-    for (int i = 0; i < messageCount; i++)
+    const char *traverse;
+    int i;
+    char *s;
+
+    va_list arg;
+    va_start(arg, format);
+
+    for (traverse = format; *traverse != '\0'; traverse++)
     {
-        std::cout << va_arg(args, char*);
+        while (*traverse != '%' && *traverse != '\0')
+        {
+            putchar(*traverse);
+            traverse++;
+        }
+
+        if(*traverse == '\0') break;
+
+        traverse++;
+
+        switch (*traverse)
+        {
+            case 'c' :
+                i = va_arg(arg, int);
+                putchar(i);
+                break;
+
+            case 'i':
+            case 'd' :
+                i = va_arg(arg, int);
+                if (i < 0)
+                {
+                    i = -i;
+                    putchar('-');
+                }
+                printf("%s", Convert(i, 10));
+                break;
+
+            case 'o':
+                i = va_arg(arg, unsigned int);
+                printf("%s", Convert(i, 8));
+                break;
+
+            case 's':
+                s = va_arg(arg, char *);
+                printf("%s", s);
+                break;
+
+            case 'x':
+                i = va_arg(arg, unsigned int);
+                printf("%s", Convert(i, 16));
+                break;
+        }
     }
-    std::cout << std::endl;
-    va_end(args);
+
+    va_end(arg);
+    printf("\n");
 }
 
-void Logger::Log(const char *message)
+char * Logger::Convert(unsigned int num, int base)
 {
-    Log(1, message);
+    static char Representation[] = "0123456789ABCDEF";
+    static char buffer[50];
+    char *ptr;
+
+    ptr = &buffer[49];
+    *ptr = '\0';
+
+    do
+    {
+        *--ptr = Representation[num % base];
+        num /= base;
+    } while (num != 0);
+
+    return (ptr);
 }

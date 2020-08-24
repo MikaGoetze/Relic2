@@ -13,8 +13,11 @@
 /// Interface for creating render back ends.
 class Renderer : public ISystem
 {
+private:
+    void OnMeshComponentConstruction(entt::registry& registry, entt::entity);
+    void OnMeshComponentDestruction(entt::registry& registry, entt::entity);
 public:
-    explicit Renderer(Window *window);
+    explicit Renderer();
 
     virtual ~Renderer() = 0;
 
@@ -23,14 +26,15 @@ public:
     virtual void EndFrame() = 0;
     virtual void FinishPendingRenderingOperations() = 0;
 
-    virtual void PrepareModel(Model& model) = 0;
-    virtual void DestroyModel(Model& model) = 0;
+    virtual void PrepareMesh(Mesh &mesh) = 0;
+    virtual void CleanupMesh(Mesh &mesh) = 0;
+
+    void Init(World &world) override;
 
     void FrameTick(World &world) override;
 
 protected:
     Window *window;
-
     glm::mat4 vpMatrix;
 };
 

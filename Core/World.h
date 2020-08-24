@@ -21,6 +21,8 @@ public:
     void FrameTick();
     void RegisterSystem(ISystem* system);
     void RemoveSystem(ISystem* system);
+
+    ~World();
 };
 
 #endif //RELIC_WORLD_H

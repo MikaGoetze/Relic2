@@ -29,3 +29,15 @@ MeshRotator::MeshRotator()
     NeedsTick = false;
     NeedsFrameTick = true;
 }
+
+SystemRegistrar MeshRotator::registrar(new MeshRotator());
+
+void MeshRotator::Init(World &world)
+{
+
+}
+
+void MeshRotator::Shutdown()
+{
+
+}
