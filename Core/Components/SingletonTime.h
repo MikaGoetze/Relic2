@@ -5,11 +5,8 @@
 #ifndef RELIC_SINGLETONTIME_H
 #define RELIC_SINGLETONTIME_H
 
-#include <Core/IComponent.h>
-
-class SingletonTime : public IComponent
+struct SingletonTime
 {
-public:
     float currentTime;
     float lastFrameTime;
     float lastTickTime;

@@ -8,14 +8,15 @@
 
 #include <vulkan/vulkan.h>
 #include "Renderer.h"
-#include "vk_mem_alloc.h"
+#include "Graphics/vk_mem_alloc.h"
 #include <optional>
 #include <vector>
-#include "OpenFBX/ofbx.h"
-#include "Model.h"
+#include "Graphics/OpenFBX/ofbx.h"
+#include "Graphics/Model.h"
 #include <glm/glm.hpp>
 #include <Libraries/IMGUI/imgui.h>
 #include <Core/Components/TransformComponent.h>
+#include <Graphics/Components/SingletonVulkanRenderState.h>
 
 struct QueueFamilyIndices
 {
@@ -38,9 +39,6 @@ struct SwapChainSupportDetails
 class VulkanRenderer : public Renderer
 {
 public:
-    explicit VulkanRenderer();
-    ~VulkanRenderer() override;
-
     void Init(World &world) override;
 
     void Shutdown(World &world) override;
@@ -48,27 +46,26 @@ public:
 private:
     static SystemRegistrar registrar;
 
-    VkInstance instance;
 
     /// Create a Vulkan Instance
-    bool CreateInstance();
+    bool CreateInstance(SingletonVulkanRenderState &state);
 
-    void CreateUniformBuffers();
+    void CreateUniformBuffers(SingletonVulkanRenderState &state);
 
     /// Check whether a vulkan instance extension is supported.
     /// \param extensionName Name of the extension to query.
     /// \return  Whether or not the extension is available.
-    bool ExtensionSupported(const char *extensionName);
+    bool ExtensionSupported(SingletonVulkanRenderState &state, const char *extensionName);
 
     /// Attempt to enable validation layers.
     /// \param createInfo - The Instance creation info struct.
     /// \param layers - The layers to enable.
-    void EnableValidationLayers(VkInstanceCreateInfo &createInfo, const std::vector<const char *> &layers);
+    void EnableValidationLayers(SingletonVulkanRenderState &state, VkInstanceCreateInfo &createInfo, const std::vector<const char *> &layers);
 
     /// Check whether a validation layer is supported.
     /// \param validationLayerName - Name of the layer to check.
     /// \return - Whether or not it is supported.
-    bool ValidationLayerSupported(const char *validationLayerName);
+    bool ValidationLayerSupported(SingletonVulkanRenderState &state, const char *validationLayerName);
 
     /// Validation layer callback.
     /// \param messageSeverity - Severity of the message
@@ -82,7 +79,7 @@ private:
                                                              void *userData);
 
     /// Attach the debug messenger to vulkan.
-    void InitialiseDebugMessenger();
+    void InitialiseDebugMessenger(SingletonVulkanRenderState &state);
 
     /// Create the debug messenger.
     /// \param instance - The VkInstance to attach to.
@@ -95,15 +92,15 @@ private:
 
     /// Select a suitable physical device.
     /// \return Whether or not it was succesfull.
-    bool SelectPhysicalDevice();
+    bool SelectPhysicalDevice(SingletonVulkanRenderState &state);
 
     /// Create a logical device.
-    void CreateLogicalDevice();
+    void CreateLogicalDevice(SingletonVulkanRenderState &state);
 
     /// Find a queue family from a physical device.
     /// \param device - The physical device
     /// \return The queue family.
-    QueueFamilyIndices FindQueueFamily(VkPhysicalDevice device);
+    QueueFamilyIndices FindQueueFamily(SingletonVulkanRenderState &state);
 
     /// Setup the debug messenger create info.
     /// \param createInfo - The create info to init.
@@ -119,27 +116,29 @@ private:
     /// Score a physical device based on it's features.
     /// \param device - The device to score.
     /// \return The score of the device (higher is better)
-    int ScorePhysicalDevice(VkPhysicalDevice &device);
+    int ScorePhysicalDevice(SingletonVulkanRenderState &state, VkPhysicalDevice &device);
 
     /// Create a surface.
-    void CreateSurface();
+    void CreateSurface(SingletonVulkanRenderState &state);
 
 public:
-    void RenderMesh(Mesh &mesh, TransformComponent transform) override;
-    void EndFrame() override;
-    void StartFrame() override;
-    void PrepareMesh(Mesh &model) override;
-    void CleanupMesh(Mesh &mesh) override;
+    void RenderMesh(SingletonRenderState &state, Mesh &mesh, TransformComponent transform) override;
+    void EndFrame(SingletonRenderState &state) override;
+    void StartFrame(SingletonRenderState &state) override;
+    void PrepareMesh(SingletonRenderState &state, Mesh &mesh) override;
+    void CleanupMesh(SingletonRenderState &state, Mesh &mesh) override;
 
 private:
+    void OnRendererCreation(entt::registry& registry, entt::entity entity);
+    void OnRendererDestruction(entt::registry& registry, entt::entity entity);
 
-    void FinishPendingRenderingOperations() override;
+    std::vector<const char *> *GetRequiredExtensions(SingletonVulkanRenderState &state);
 
-    bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
+    bool CheckDeviceExtensionSupport(SingletonVulkanRenderState &state);
 
-    void CreateSwapChain();
+    void CreateSwapChain(SingletonVulkanRenderState &state);
 
-    SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
+    SwapChainSupportDetails QuerySwapChainSupport(SingletonVulkanRenderState &state);
 
     VkSurfaceFormatKHR SelectSwapChainSurfaceFormat(std::vector<VkSurfaceFormatKHR> &formats);
 
@@ -147,105 +146,32 @@ private:
 
     VkExtent2D SelectSwapChainExtent(const VkSurfaceCapabilitiesKHR &capabilities);
 
-    void CreateSwapchainImageViews();
+    void CreateSwapchainImageViews(SingletonVulkanRenderState &state);
 
-    void CreateDepthResources();
+    void CreateDepthResources(SingletonVulkanRenderState &state);
 
-    //Variables
+    void CreateDescriptorSetLayout(SingletonVulkanRenderState &state);
+    void CreateGraphicsPipeline(SingletonVulkanRenderState &state);
 
-    bool validationLayersEnabled;
-
-    std::vector<const char *> *GetRequiredExtensions();
-
-    /// Cache of supported exteions.
-    VkExtensionProperties *supportedExtensions;
-    /// Number of supported extensions currently cached.
-    uint32_t supportedExtensionCount;
-
-    VkLayerProperties *supportedValidationLayers;
-    uint32_t supportedValidationLayersCount;
-
-    std::vector<const char *> *enabledValidationLayers;
-
-    VkDebugUtilsMessengerEXT debugMessenger;
-
-    VkSurfaceKHR surface{};
-    VkRenderPass renderPass{};
-    VkDescriptorSetLayout descriptorSetLayout{};
-    VkDescriptorPool descriptorPool{};
-    std::vector<VkDescriptorSet> descriptorSets;
-    VkPipelineLayout pipelineLayout{};
-    VkPipeline graphicsPipeline{};
-
-    VkPhysicalDevice physicalDevice{};
-    std::vector<VkFramebuffer> swapchainFrameBuffers;
-    VkCommandPool commandPool{};
-    std::vector<VkCommandBuffer> commandBuffers;
-
-    //TODO: Temp
-    ImDrawData * imGuiDrawData;
-
-    std::vector<VkBuffer> uniformBuffers;
-    std::vector<VmaAllocation> uniformBufferAllocations;
-
-    VkImage depthImage;
-    VmaAllocation depthImageAllocation;
-    VkImageView depthImageView;
-
-    VkDevice device{};
-
-    VkQueue graphicsQueue{};
-    VkQueue presentationQueue{};
-
-    const int MAX_FRAMES_IN_FLIGHT = 2;
-
-    const std::vector<const char *> layers = {
-            "VK_LAYER_LUNARG_standard_validation"
-    };
-
-    const std::vector<const char *> deviceExtensions = {
-            VK_KHR_SWAPCHAIN_EXTENSION_NAME
-    };
-
-    VkSwapchainKHR swapchain{};
-    std::vector<VkImage> swapchainImages;
-    VkSurfaceFormatKHR swapchainImageFormat{};
-    VkExtent2D swapchainImageExtent{};
-
-    std::vector<VkSemaphore> imageAvailableSemaphores;
-    std::vector<VkSemaphore> renderFinishedSemaphores;
-    std::vector<VkFence> inFlightFences;
-    std::vector<VkFence> imagesInFlight;
-    size_t currentFrame = 0;
-
-    bool framebufferResized = false;
-
-    VmaAllocator allocator;
-
-    std::vector<VkImageView> swapchainImageViews;
-
-    void CreateDescriptorSetLayout();
-    void CreateGraphicsPipeline();
-
-    void CreateRenderPass();
+    void CreateRenderPass(SingletonVulkanRenderState &state);
 
     static void WindowResizedCallback(Window* window, int width, int height);
 
-    void CreateFrameBuffers();
+    void CreateFrameBuffers(SingletonVulkanRenderState &state);
 
-    void CreateCommandPool();
-    void CreateDescriptorSetPool();
-    void CreateDescriptorSets();
+    void CreateCommandPool(SingletonVulkanRenderState &state);
+    void CreateDescriptorSetPool(SingletonVulkanRenderState &state);
+    void CreateDescriptorSets(SingletonVulkanRenderState &state);
 
-    void CreateCommandBuffers(bool isRecreate);
+    void CreateCommandBuffers(SingletonVulkanRenderState &state, bool isRecreate);
 
-    void CreateSynchronisationObjects();
+    void CreateSynchronisationObjects(SingletonVulkanRenderState &state);
 
-    void RecreateSwapChain();
+    void RecreateSwapChain(SingletonVulkanRenderState &state);
 
-    void CleanupSwapchain();
+    void CleanupSwapchain(SingletonVulkanRenderState &state);
 
-    void CreateAllocator();
+    void CreateAllocator(SingletonVulkanRenderState &state);
 
     struct UniformBufferObject
     {
@@ -264,12 +190,10 @@ public:
 private:
     void UpdateUniformBuffers(uint32_t currentImage);
 
-    void SetupImGui();
+    void SetupImGui(SingletonVulkanRenderState &state);
 
-    void StartCommandBuffer(uint32_t frame);
-    void EndCommandBuffer(uint32_t frame);
-
-    uint32_t imageIndex;
+    void StartCommandBuffer(SingletonVulkanRenderState &state);
+    void EndCommandBuffer(VkCommandBuffer &commandBuffer);
 };
 
 

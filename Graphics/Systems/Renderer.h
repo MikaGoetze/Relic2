@@ -6,9 +6,10 @@
 #define RELIC_RENDERER_H
 
 #include <Core/ISystem.h>
-#include "Window.h"
-#include "Model.h"
+#include "Graphics/Window.h"
+#include "Graphics/Model.h"
 #include <Core/Components/TransformComponent.h>
+#include <Graphics/Components/SingletonRenderState.h>
 
 /// Interface for creating render back ends.
 class Renderer : public ISystem
@@ -21,13 +22,12 @@ public:
 
     virtual ~Renderer() = 0;
 
-    virtual void StartFrame() = 0;
-    virtual void RenderMesh(Mesh &mesh, TransformComponent component) = 0;
-    virtual void EndFrame() = 0;
-    virtual void FinishPendingRenderingOperations() = 0;
+    virtual void StartFrame(SingletonRenderState &state) = 0;
+    virtual void RenderMesh(SingletonRenderState &state, Mesh &mesh, TransformComponent component) = 0;
+    virtual void EndFrame(SingletonRenderState &state) = 0;
 
-    virtual void PrepareMesh(Mesh &mesh) = 0;
-    virtual void CleanupMesh(Mesh &mesh) = 0;
+    virtual void PrepareMesh(SingletonRenderState &state, Mesh &mesh) = 0;
+    virtual void CleanupMesh(SingletonRenderState &state, Mesh &mesh) = 0;
 
     void Init(World &world) override;
 

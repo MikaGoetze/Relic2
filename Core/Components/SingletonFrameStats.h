@@ -5,12 +5,8 @@
 #ifndef RELIC_SINGLETONFRAMESTATS_H
 #define RELIC_SINGLETONFRAMESTATS_H
 
-#include <Core/IComponent.h>
-#include <cstdlib>
-
-class SingletonFrameStats : public IComponent
+struct SingletonFrameStats
 {
-public:
     static const size_t FRAME_COUNT = 512;
     float averageFrameTime;
     float frameTimes[FRAME_COUNT];

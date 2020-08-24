@@ -9,7 +9,7 @@
 
 #include <GLFW/glfw3.h>
 #include <Graphics/Window.h>
-#include <Graphics/VulkanRenderer.h>
+#include <Graphics/Systems/VulkanRenderer.h>
 #include <ResourceManager/ResourceManager.h>
 #include <MemoryManager/MemoryManager.h>
 #include "World.h"

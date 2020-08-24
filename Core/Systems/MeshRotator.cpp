@@ -4,9 +4,8 @@
 
 #include "MeshRotator.h"
 #include <Core/World.h>
-#include <Graphics/MeshComponent.h>
+#include <Graphics/Components/MeshComponent.h>
 #include <Core/Components/TransformComponent.h>
-#include <Core/Systems/Time.h>
 #include <Core/Components/SingletonTime.h>
 
 void MeshRotator::Tick(World &world)

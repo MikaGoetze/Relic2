@@ -39,7 +39,7 @@ void Time::FrameTick(World &world)
             frameStats->currentFrameIndex++;
         }
 
-        frameStats->averageFrameTime = (0.1f * time->FrameDelta()) + (0.9f * frameStats->averageFrameTime);
+        frameStats->averageFrameTime = (0.001f * time->FrameDelta()) + (0.999f * frameStats->averageFrameTime);
     }
 }
 

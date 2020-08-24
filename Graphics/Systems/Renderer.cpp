@@ -4,8 +4,8 @@
 
 #include <Core/Components/TransformComponent.h>
 #include "Renderer.h"
-#include "MeshComponent.h"
-#include "CameraComponent.h"
+#include "Graphics/Components/MeshComponent.h"
+#include "Graphics/Components/CameraComponent.h"
 #include <Core/World.h>
 #include <Core/Relic.h>
 
@@ -19,7 +19,8 @@ Renderer::Renderer()
 
 void Renderer::FrameTick(World &world)
 {
-    StartFrame();
+    SingletonRenderState& state = *world.Registry()->ctx<SingletonRenderState*>();
+    StartFrame(state);
 
     auto objects = world.Registry()->group<MeshComponent>(entt::get<TransformComponent>);
     auto cameras = world.Registry()->group<CameraComponent>(entt::get<TransformComponent>);
@@ -47,12 +48,12 @@ void Renderer::FrameTick(World &world)
         {
             MeshComponent& meshComponent = objects.get<MeshComponent>(entity);
             TransformComponent& transformComponent = objects.get<TransformComponent>(entity);
-            RenderMesh(*meshComponent.mesh, transformComponent);
+            RenderMesh(state, *meshComponent.mesh, transformComponent);
         }
         break;
     }
 
-    EndFrame();
+    EndFrame(state);
 }
 
 void Renderer::Init(World &world)
@@ -68,12 +69,14 @@ void Renderer::Init(World &world)
 void Renderer::OnMeshComponentConstruction(entt::registry& registry, entt::entity entity)
 {
     MeshComponent &comp = registry.get<MeshComponent>(entity);
-    PrepareMesh(*comp.mesh);
+    SingletonRenderState & state = *registry.ctx<SingletonRenderState*>();
+    PrepareMesh(state, *comp.mesh);
 }
 
 void Renderer::OnMeshComponentDestruction(entt::registry &registry, entt::entity entity)
 {
     MeshComponent &comp = registry.get<MeshComponent>(entity);
-    CleanupMesh(*comp.mesh);
+    SingletonRenderState & state = *registry.ctx<SingletonRenderState*>();
+    CleanupMesh(state, *comp.mesh);
 }
 

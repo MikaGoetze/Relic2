@@ -3,13 +3,13 @@
 //
 
 #include <Graphics/Window.h>
-#include <Graphics/VulkanRenderer.h>
+#include <Graphics/Systems/VulkanRenderer.h>
 #include "Relic.h"
 #include "Core/Systems/Time.h"
 #include <Libraries/IMGUI/imgui_impl_vulkan.h>
 #include <Libraries/IMGUI/imgui_impl_glfw.h>
-#include <Graphics/MeshComponent.h>
-#include <Graphics/CameraComponent.h>
+#include <Graphics/Components/MeshComponent.h>
+#include <Graphics/Components/CameraComponent.h>
 #include <Core/Systems/MeshRotator.h>
 #include <Core/Components/SingletonTime.h>
 #include <Core/Components/SingletonFrameStats.h>
@@ -181,6 +181,8 @@ void Relic::DebugInit()
         auto entity = registry->create();
         registry->emplace<MeshComponent>(entity, &model->meshes[i], model->meshes[i].guid);
         registry->emplace<TransformComponent>(entity, glm::zero<glm::vec3>(), glm::one<glm::vec3>(), glm::quat(glm::vec3(-glm::radians(90.0f), 0, 0)));
+
+        auto test = TransformComponent{glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::quat()};
     }
 }
 

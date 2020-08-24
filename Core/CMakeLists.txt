@@ -6,7 +6,6 @@ target_sources(Relic PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/World.h"
         "${CMAKE_CURRENT_SOURCE_DIR}/World.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/ISystem.h"
-        "${CMAKE_CURRENT_SOURCE_DIR}/IComponent.h"
 )
 
 add_subdirectory("Components")
