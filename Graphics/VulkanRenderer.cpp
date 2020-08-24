@@ -1327,7 +1327,7 @@ void VulkanRenderer::Init(World &world)
     SetupImGui();
 }
 
-void VulkanRenderer::Shutdown()
+void VulkanRenderer::Shutdown(World &world)
 {
     FinishPendingRenderingOperations();
 

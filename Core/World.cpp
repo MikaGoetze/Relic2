@@ -55,7 +55,7 @@ World::~World()
 
     for (auto system : systems)
     {
-        system->Shutdown();
+        system->Shutdown(*this);
     }
 }
 

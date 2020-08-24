@@ -5,12 +5,14 @@
 #include <Graphics/Window.h>
 #include <Graphics/VulkanRenderer.h>
 #include "Relic.h"
-#include "Time.h"
+#include "Core/Systems/Time.h"
 #include <Libraries/IMGUI/imgui_impl_vulkan.h>
 #include <Libraries/IMGUI/imgui_impl_glfw.h>
 #include <Graphics/MeshComponent.h>
 #include <Graphics/CameraComponent.h>
 #include <Core/Systems/MeshRotator.h>
+#include <Core/Components/SingletonTime.h>
+#include <Core/Components/SingletonFrameStats.h>
 
 
 Relic::Relic()
@@ -44,6 +46,11 @@ void Relic::Shutdown()
 
 void Relic::CreateSystems()
 {
+    //Create our core systems in order to guarantee correct execution order
+    Time* time = new Time();
+    worlds[0]->RegisterSystem(time);
+    time->Init(*worlds[0]);
+
     Logger::Log("Creating %i registered systems", ISystem::SystemRegistry().size());
     for(auto system : ISystem::SystemRegistry())
     {
@@ -87,34 +94,33 @@ void Relic::GameLoop()
     {
         glfwPollEvents();
 
-        bool shouldTick = false;
-
-        if (Time::TickDelta() > tickLength)
-        {
-            shouldTick = true;
-        }
-
         DrawRenderDebugWidget();
 
         for (auto world : worlds)
         {
-            if(shouldTick) world->Tick();
             world->FrameTick();
-        }
 
-        if(shouldTick) Time::Tick();
-        Time::FrameTick();
+            if (world->Registry()->ctx<SingletonTime*>()->TickDelta() > tickLength)
+            {
+                world->Tick();
+            }
+        }
     }
 }
 
 void Relic::DrawRenderDebugWidget()
 {
+    //we only draw stats for our default world.
     ImGui::NewFrame();
 
     ImGui::Begin("Stats", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
     ImGui::Text("Frame Info");
-    ImGui::PlotLines("", Time::frameTimes, Time::FRAME_COUNT, 0, nullptr, 0.0f, Time::averageTime * 2.0f);
+
+    SingletonTime* time = worlds[0]->Registry()->ctx<SingletonTime*>();
+    SingletonFrameStats* frameStats = worlds[0]->Registry()->ctx<SingletonFrameStats*>();
+
+    ImGui::PlotLines("", frameStats->frameTimes, SingletonFrameStats::FRAME_COUNT, 0, nullptr, 0.0f, frameStats->averageFrameTime * 2.0f);
 
     ImGui::Columns(3);
     ImGui::Separator();
@@ -128,17 +134,17 @@ void Relic::DrawRenderDebugWidget()
     ImGui::NextColumn();
     ImGui::Text("FRMT");
     ImGui::NextColumn();
-    ImGui::Text("%.5fms", Time::FrameDelta());
+    ImGui::Text("%.5fms", time->FrameDelta());
     ImGui::NextColumn();
-    ImGui::Text("%.5fms", Time::averageTime);
+    ImGui::Text("%.5fms", frameStats->averageFrameTime);
     ImGui::Separator();
 
     ImGui::NextColumn();
     ImGui::Text("FPS");
     ImGui::NextColumn();
-    ImGui::Text("%.0ffps", 1.0f / Time::FrameDelta());
+    ImGui::Text("%.0ffps", 1.0f / time->FrameDelta());
     ImGui::NextColumn();
-    ImGui::Text("%.0ffps", 1.0f / Time::averageTime);
+    ImGui::Text("%.0ffps", 1.0f / frameStats->averageFrameTime);
 
     ImGui::End();
 }

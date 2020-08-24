@@ -43,7 +43,7 @@ public:
 
     void Init(World &world) override;
 
-    void Shutdown() override;
+    void Shutdown(World &world) override;
 
 private:
     static SystemRegistrar registrar;

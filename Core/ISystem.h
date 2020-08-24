@@ -18,7 +18,7 @@ public:
     virtual void FrameTick(World &world) = 0;
 
     virtual void Init(World &world) = 0;
-    virtual void Shutdown() = 0;
+    virtual void Shutdown(World &world) = 0;
 
     bool NeedsTick = true;
     bool NeedsFrameTick = false;
