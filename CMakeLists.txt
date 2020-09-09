@@ -19,6 +19,7 @@ add_subdirectory(ResourceManager)
 add_subdirectory(Graphics)
 add_subdirectory(Importers)
 add_subdirectory(Libraries)
+add_subdirectory(Gameplay)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR})
 

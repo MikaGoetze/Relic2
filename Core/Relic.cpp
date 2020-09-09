@@ -13,6 +13,7 @@
 #include <Core/Components/SingletonTime.h>
 #include <Core/Components/SingletonFrameStats.h>
 #include <Graphics/MaterialUtil.h>
+#include <Gameplay/Components/FPSCameraComponent.h>
 
 Relic::Relic()
 {
@@ -197,6 +198,7 @@ void Relic::CreateDefaultWorldObjects()
 
     registry->emplace<CameraComponent>(camera, 45.0f, 0.5f, 200.0f, true);
     registry->emplace<TransformComponent>(camera, glm::vec3(0, 10, -20), glm::one<glm::vec3>(), glm::vec3(-glm::radians(-30.0f), 0, 0));
+    registry->emplace<FPSCameraComponent>(camera);
 }
 
 const Relic *Relic::Instance()
