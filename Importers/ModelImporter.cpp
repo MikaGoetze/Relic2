@@ -16,22 +16,6 @@ GUID ModelImporter::ImportResource(const std::string &filePath)
     model->meshCount = scene->getMeshCount();
     model->meshes = new Mesh[model->meshCount];
 
-    std::map<ofbx::u64, const ofbx::Material&> mats;
-    for(size_t i = 0; i < scene->getMeshCount(); i++)
-    {
-        const ofbx::Mesh& mesh = *scene->getMesh(i);
-        for(size_t j = 0; j < mesh.getMaterialCount(); j++)
-        {
-            const ofbx::Material& material = *mesh.getMaterial(j);
-            if(mats.find(material.id) != mats.end())
-            {
-                continue;
-            }
-
-            mats.insert({material.id, material});
-        }
-    }
-
     for (size_t i = 0; i < model->meshCount; i++)
     {
         const ofbx::Geometry *geometry = scene->getMesh(i)->getGeometry();

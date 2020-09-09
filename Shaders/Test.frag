@@ -3,9 +3,12 @@
 
 layout(location = 0) out vec4 color;
 
-layout(location = 0) in vec3 fragColor;
+layout(location = 0) in vec2 fragCoord;
+
+layout(set = 1, binding = 1) uniform sampler2D texSampler;
 
 void main()
 {
-    color = vec4(fragColor, 1.0);
+    color = texture(texSampler, fragCoord);
+//    color = vec4(fragCoord, 0.0, 1.0);
 }

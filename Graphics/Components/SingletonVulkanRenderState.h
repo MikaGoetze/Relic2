@@ -30,6 +30,7 @@ struct SingletonVulkanRenderState : SingletonRenderState
     VkSurfaceKHR surface{};
     VkRenderPass renderPass{};
     VkDescriptorSetLayout descriptorSetLayout{};
+    VkDescriptorSetLayout materialDescriptorSetLayout{};
     VkDescriptorPool descriptorPool{};
     std::vector<VkDescriptorSet> descriptorSets;
     VkPipelineLayout pipelineLayout{};

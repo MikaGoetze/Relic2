@@ -23,11 +23,13 @@ public:
     virtual ~Renderer() = 0;
 
     virtual void StartFrame(SingletonRenderState &state) = 0;
-    virtual void RenderMesh(SingletonRenderState &state, Mesh &mesh, TransformComponent component) = 0;
+    virtual void RenderMesh(SingletonRenderState &state, Mesh &mesh, Material &material, TransformComponent component) = 0;
     virtual void EndFrame(SingletonRenderState &state) = 0;
 
     virtual void PrepareMesh(SingletonRenderState &state, Mesh &mesh) = 0;
     virtual void CleanupMesh(SingletonRenderState &state, Mesh &mesh) = 0;
+
+    virtual void RegisterMaterial(Material *material);
 
     void Init(World &world) override;
 
@@ -36,6 +38,8 @@ public:
 protected:
     Window *window;
     glm::mat4 vpMatrix;
+
+    std::vector<Material*> materials;
 };
 
 #endif //RELIC_RENDERER_H

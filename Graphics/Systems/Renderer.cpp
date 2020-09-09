@@ -48,7 +48,7 @@ void Renderer::FrameTick(World &world)
         {
             MeshComponent& meshComponent = objects.get<MeshComponent>(entity);
             TransformComponent& transformComponent = objects.get<TransformComponent>(entity);
-            RenderMesh(state, *meshComponent.mesh, transformComponent);
+            RenderMesh(state, *meshComponent.mesh, *meshComponent.material, transformComponent);
         }
         break;
     }
@@ -78,5 +78,10 @@ void Renderer::OnMeshComponentDestruction(entt::registry &registry, entt::entity
     MeshComponent &comp = registry.get<MeshComponent>(entity);
     SingletonRenderState & state = *registry.ctx<SingletonRenderState*>();
     CleanupMesh(state, *comp.mesh);
+}
+
+void Renderer::RegisterMaterial(Material *material)
+{
+    materials.push_back(material);
 }
 

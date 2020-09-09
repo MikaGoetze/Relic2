@@ -22,7 +22,26 @@ public:
     void RegisterSystem(ISystem* system);
     void RemoveSystem(ISystem* system);
 
+    template <typename T>
+    T * GetSystem() const;
+
     ~World();
 };
+
+template<typename T>
+T * World::GetSystem() const
+{
+    T* ptr;
+    for(auto * system : systems)
+    {
+        ptr = dynamic_cast<T*>(system);
+        if(ptr != nullptr)
+        {
+            return ptr;
+        }
+    }
+
+    return nullptr;
+}
 
 #endif //RELIC_WORLD_H

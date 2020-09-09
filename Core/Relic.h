@@ -25,6 +25,8 @@ public:
     static const Relic* Instance();
     Window* GetActiveWindow() const;
 
+    World* GetPrimaryWorld() const;
+
 private:
     void Initialise();
 

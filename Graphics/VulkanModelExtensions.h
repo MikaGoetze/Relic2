@@ -21,4 +21,18 @@ struct VulkanRenderData
     bool ready;
 };
 
+struct Image
+{
+    VkImage image;
+    VkSampler sampler;
+    VkImageView view;
+    VmaAllocation allocation;
+};
+
+struct VulkanMaterialData
+{
+    VkDescriptorSet descriptorSet;
+    Image texture;
+};
+
 #endif //RELIC_VULKANMODELEXTENSIONS_H

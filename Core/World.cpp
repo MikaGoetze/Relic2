@@ -58,4 +58,3 @@ World::~World()
         system->Shutdown(*this);
     }
 }
-

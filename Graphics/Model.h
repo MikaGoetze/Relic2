@@ -11,6 +11,7 @@
 #include <Importers/ImportUtil.h>
 #include <Core/RelicStruct.h>
 #include <memory>
+#include "Texture.h"
 
 typedef struct Vertex
 {
@@ -32,12 +33,20 @@ struct Mesh : RelicStruct
    void* renderData = nullptr;
 
     GUID guid;
+
+    ~Mesh()
+    {
+        delete[] vertices;
+        delete[] indices;
+        guid = GUID_INVALID;
+    }
 } ;
 
 struct Material : RelicStruct
 {
     uint32_t sType = REL_STRUCTURE_TYPE_MATERIAL;
-    std::string filename;
+    Texture* texture;
+    void* renderData = nullptr;
 };
 
 struct Model : RelicStruct
@@ -45,10 +54,13 @@ struct Model : RelicStruct
     RelicType sType = REL_STRUCTURE_TYPE_MODEL;
     size_t meshCount;
     Mesh * meshes = nullptr;
-    size_t materialCount;
-    Material* materials = nullptr;
 
     GUID guid;
+
+    ~Model()
+    {
+        delete[] meshes;
+    }
 };
 
 

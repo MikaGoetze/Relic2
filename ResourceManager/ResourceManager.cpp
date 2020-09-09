@@ -72,7 +72,6 @@ void *ResourceManager::GetResourceData(uint_fast32_t guid, bool forceReload)
     Logger::Log("%s", std::to_string(resourceSize).c_str());
     Logger::Log("%s", std::to_string(type).c_str());
 
-
     return importer->Deserialize(data, resourceSize);
 }
 

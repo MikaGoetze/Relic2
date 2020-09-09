@@ -13,6 +13,7 @@
 struct MeshComponent
 {
     Mesh *mesh;
+    Material* material;
     GUID guid;
 };
 

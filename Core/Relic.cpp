@@ -10,10 +10,9 @@
 #include <Libraries/IMGUI/imgui_impl_glfw.h>
 #include <Graphics/Components/MeshComponent.h>
 #include <Graphics/Components/CameraComponent.h>
-#include <Core/Systems/MeshRotator.h>
 #include <Core/Components/SingletonTime.h>
 #include <Core/Components/SingletonFrameStats.h>
-
+#include <Graphics/MaterialUtil.h>
 
 Relic::Relic()
 {
@@ -171,18 +170,19 @@ void Relic::Cleanup()
 void Relic::DebugInit()
 {
     //Load test model
-    GUID guid = resourceManager->ImportResource("Resources/Models/cottage.fbx", REL_STRUCTURE_TYPE_MODEL);
+    GUID guid = resourceManager->ImportResource("Resources/Models/Box.fbx", REL_STRUCTURE_TYPE_MODEL);
     model = resourceManager->GetSimpleResourceData<Model>(guid);
+
+    GUID texGuid = resourceManager->ImportResource("Resources/Textures/box.png", REL_STRUCTURE_TYPE_TEXTURE);
+    Material* mat = MaterialUtil::CreateMaterial(texGuid);
 
     auto registry = worlds[0]->Registry();
 
     for(size_t i = 0; i < model->meshCount; i++)
     {
         auto entity = registry->create();
-        registry->emplace<MeshComponent>(entity, &model->meshes[i], model->meshes[i].guid);
+        registry->emplace<MeshComponent>(entity, &model->meshes[i], mat, model->meshes[i].guid);
         registry->emplace<TransformComponent>(entity, glm::zero<glm::vec3>(), glm::one<glm::vec3>(), glm::quat(glm::vec3(-glm::radians(90.0f), 0, 0)));
-
-        auto test = TransformComponent{glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::quat()};
     }
 }
 
@@ -196,7 +196,7 @@ void Relic::CreateDefaultWorldObjects()
     auto camera = registry->create();
 
     registry->emplace<CameraComponent>(camera, 45.0f, 0.5f, 200.0f, true);
-    registry->emplace<TransformComponent>(camera, glm::vec3(0, 30, -60), glm::one<glm::vec3>(), glm::vec3(-glm::radians(-30.0f), 0, 0));
+    registry->emplace<TransformComponent>(camera, glm::vec3(0, 10, -20), glm::one<glm::vec3>(), glm::vec3(-glm::radians(-30.0f), 0, 0));
 }
 
 const Relic *Relic::Instance()
@@ -210,3 +210,9 @@ Window *Relic::GetActiveWindow() const
 }
 
 Relic* Relic::instance = nullptr;
+
+World *Relic::GetPrimaryWorld() const
+{
+    if(worlds.empty()) return nullptr;
+    return worlds[0];
+}

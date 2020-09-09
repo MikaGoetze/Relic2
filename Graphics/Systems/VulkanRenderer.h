@@ -43,9 +43,10 @@ public:
 
     void Shutdown(World &world) override;
 
+    void RegisterMaterial(Material *material) override;
+
 private:
     static SystemRegistrar registrar;
-
 
     /// Create a Vulkan Instance
     bool CreateInstance(SingletonVulkanRenderState &state);
@@ -60,7 +61,7 @@ private:
     /// Attempt to enable validation layers.
     /// \param createInfo - The Instance creation info struct.
     /// \param layers - The layers to enable.
-    void EnableValidationLayers(SingletonVulkanRenderState &state, VkInstanceCreateInfo &createInfo, const std::vector<const char *> &layers);
+    void EnableValidationLayers(SingletonVulkanRenderState &state, VkInstanceCreateInfo &createInfo);
 
     /// Check whether a validation layer is supported.
     /// \param validationLayerName - Name of the layer to check.
@@ -121,16 +122,9 @@ private:
     /// Create a surface.
     void CreateSurface(SingletonVulkanRenderState &state);
 
-public:
-    void RenderMesh(SingletonRenderState &state, Mesh &mesh, TransformComponent transform) override;
-    void EndFrame(SingletonRenderState &state) override;
-    void StartFrame(SingletonRenderState &state) override;
-    void PrepareMesh(SingletonRenderState &state, Mesh &mesh) override;
-    void CleanupMesh(SingletonRenderState &state, Mesh &mesh) override;
+    void OnRendererCreation(entt::registry &registry, entt::entity entity);
 
-private:
-    void OnRendererCreation(entt::registry& registry, entt::entity entity);
-    void OnRendererDestruction(entt::registry& registry, entt::entity entity);
+    void OnRendererDestruction(entt::registry &registry, entt::entity entity);
 
     std::vector<const char *> *GetRequiredExtensions(SingletonVulkanRenderState &state);
 
@@ -142,7 +136,7 @@ private:
 
     VkSurfaceFormatKHR SelectSwapChainSurfaceFormat(std::vector<VkSurfaceFormatKHR> &formats);
 
-    VkPresentModeKHR SelectSwapChainPresentMode(const std::vector<VkPresentModeKHR>& modes);
+    VkPresentModeKHR SelectSwapChainPresentMode(const std::vector<VkPresentModeKHR> &modes);
 
     VkExtent2D SelectSwapChainExtent(const VkSurfaceCapabilitiesKHR &capabilities);
 
@@ -151,16 +145,19 @@ private:
     void CreateDepthResources(SingletonVulkanRenderState &state);
 
     void CreateDescriptorSetLayout(SingletonVulkanRenderState &state);
+
     void CreateGraphicsPipeline(SingletonVulkanRenderState &state);
 
     void CreateRenderPass(SingletonVulkanRenderState &state);
 
-    static void WindowResizedCallback(Window* window, int width, int height);
+    static void WindowResizedCallback(Window *window, int width, int height);
 
     void CreateFrameBuffers(SingletonVulkanRenderState &state);
 
     void CreateCommandPool(SingletonVulkanRenderState &state);
+
     void CreateDescriptorSetPool(SingletonVulkanRenderState &state);
+
     void CreateDescriptorSets(SingletonVulkanRenderState &state);
 
     void CreateCommandBuffers(SingletonVulkanRenderState &state, bool isRecreate);
@@ -172,6 +169,14 @@ private:
     void CleanupSwapchain(SingletonVulkanRenderState &state);
 
     void CreateAllocator(SingletonVulkanRenderState &state);
+
+    void UpdateUniformBuffers(uint32_t currentImage);
+
+    void SetupImGui(SingletonVulkanRenderState &state);
+
+    void StartCommandBuffer(SingletonVulkanRenderState &state);
+
+    void EndCommandBuffer(VkCommandBuffer &commandBuffer);
 
     struct UniformBufferObject
     {
@@ -185,15 +190,17 @@ private:
         glm::mat4 mvp;
     };
 public:
-    void Tick(World& world) override;
+    void Tick(World &world) override;
 
-private:
-    void UpdateUniformBuffers(uint32_t currentImage);
+    void RenderMesh(SingletonRenderState &s, Mesh &mesh, Material &material, TransformComponent transform) override;
 
-    void SetupImGui(SingletonVulkanRenderState &state);
+    void EndFrame(SingletonRenderState &state) override;
 
-    void StartCommandBuffer(SingletonVulkanRenderState &state);
-    void EndCommandBuffer(VkCommandBuffer &commandBuffer);
+    void StartFrame(SingletonRenderState &state) override;
+
+    void PrepareMesh(SingletonRenderState &state, Mesh &mesh) override;
+
+    void CleanupMesh(SingletonRenderState &state, Mesh &mesh) override;
 };
 
 

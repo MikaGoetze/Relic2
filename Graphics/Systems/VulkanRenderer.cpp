@@ -23,6 +23,7 @@
 #include <Libraries/IMGUI/imgui_impl_glfw.h>
 #include <Core/World.h>
 #include <Graphics/Components/SingletonVulkanRenderState.h>
+#include <Core/Relic.h>
 
 bool VulkanRenderer::CreateInstance(SingletonVulkanRenderState &state)
 {
@@ -44,7 +45,7 @@ bool VulkanRenderer::CreateInstance(SingletonVulkanRenderState &state)
     instanceCreateInfo.enabledExtensionCount = extensions->size();
     instanceCreateInfo.ppEnabledExtensionNames = extensions->data();
 
-    if (state.validationLayersEnabled) EnableValidationLayers(state, instanceCreateInfo, state.layers);
+    if (state.validationLayersEnabled) EnableValidationLayers(state, instanceCreateInfo);
 
     if (vkCreateInstance(&instanceCreateInfo, nullptr, &state.instance) != VK_SUCCESS)
     {
@@ -93,9 +94,9 @@ bool VulkanRenderer::ValidationLayerSupported(SingletonVulkanRenderState &state,
     return false;
 }
 
-void VulkanRenderer::EnableValidationLayers(SingletonVulkanRenderState &state, VkInstanceCreateInfo &createInfo, const std::vector<const char *> &layers)
+void VulkanRenderer::EnableValidationLayers(SingletonVulkanRenderState &state, VkInstanceCreateInfo &createInfo)
 {
-    for (auto &validationLayer : layers)
+    for (auto &validationLayer : state.layers)
     {
         if (!ValidationLayerSupported(state, validationLayer))
         {
@@ -611,8 +612,9 @@ void VulkanRenderer::CreateGraphicsPipeline(SingletonVulkanRenderState &state)
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &state.descriptorSetLayout;
+    std::vector<VkDescriptorSetLayout> layouts = {state.descriptorSetLayout, state.materialDescriptorSetLayout};
+    pipelineLayoutInfo.setLayoutCount = layouts.size();
+    pipelineLayoutInfo.pSetLayouts = layouts.data();
     pipelineLayoutInfo.pushConstantRangeCount = 1;
     pipelineLayoutInfo.pPushConstantRanges = &pushConstants;
 
@@ -908,16 +910,33 @@ void VulkanRenderer::CreateDescriptorSetLayout(SingletonVulkanRenderState &state
     uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
+    std::vector<VkDescriptorSetLayoutBinding> bindings = {uboLayoutBinding};
+
     VkDescriptorSetLayoutCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    createInfo.bindingCount = 1;
-    createInfo.pBindings = &uboLayoutBinding;
-    createInfo.pBindings = &uboLayoutBinding;
+    createInfo.bindingCount = bindings.size();
+    createInfo.pBindings = bindings.data();
     createInfo.flags = 0;
 
-    if (vkCreateDescriptorSetLayout(state.device, &createInfo, nullptr, &state.descriptorSetLayout))
+    if (vkCreateDescriptorSetLayout(state.device, &createInfo, nullptr, &state.descriptorSetLayout) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create descriptor set layout.");
+    }
+
+    VkDescriptorSetLayoutBinding materialLayoutBinding = {};
+    materialLayoutBinding.binding = 1;
+    materialLayoutBinding.descriptorCount = 1;
+    materialLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    materialLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+
+    bindings = {materialLayoutBinding};
+
+    createInfo.bindingCount = bindings.size();
+    createInfo.pBindings = bindings.data();
+
+    if(vkCreateDescriptorSetLayout(state.device, &createInfo, nullptr, &state.materialDescriptorSetLayout) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create material descriptor set layout.");
     }
 }
 
@@ -1163,11 +1182,12 @@ void VulkanRenderer::CleanupMesh(SingletonRenderState &s, Mesh &mesh)
     mesh.renderData = nullptr;
 }
 
-void VulkanRenderer::RenderMesh(SingletonRenderState &s, Mesh &mesh, TransformComponent transform)
+void VulkanRenderer::RenderMesh(SingletonRenderState &s, Mesh &mesh, Material &material, TransformComponent transform)
 {
     auto & state = (SingletonVulkanRenderState&) s;
     auto renderData = (VulkanRenderData *) mesh.renderData;
-    if (renderData == nullptr || !renderData->ready) return;
+    auto matRenderData = (VulkanMaterialData *) material.renderData;
+    if (renderData == nullptr || matRenderData == nullptr || !renderData->ready) return;
 
     VkDeviceSize offset = 0;
 
@@ -1181,6 +1201,9 @@ void VulkanRenderer::RenderMesh(SingletonRenderState &s, Mesh &mesh, TransformCo
 
     vkCmdBindVertexBuffers(state.commandBuffers[state.imageIndex], 0, 1, &renderData->vertexBuffer.buffer, &offset);
     vkCmdBindIndexBuffer(state.commandBuffers[state.imageIndex], renderData->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+    vkCmdBindDescriptorSets(state.commandBuffers[state.imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, state.pipelineLayout, 1, 1, &matRenderData->descriptorSet, 0, nullptr);
+
     vkCmdDrawIndexed(state.commandBuffers[state.imageIndex], mesh.indexCount, 1, 0, 0, 0);
 }
 
@@ -1366,6 +1389,58 @@ void VulkanRenderer::OnRendererDestruction(entt::registry &registry, entt::entit
     vkDestroyDevice(state.device, nullptr);
     vkDestroySurfaceKHR(state.instance, state.surface, nullptr);
     vkDestroyInstance(state.instance, nullptr);
+}
+
+void VulkanRenderer::RegisterMaterial(Material *material)
+{
+    Renderer::RegisterMaterial(material);
+    auto *data = new VulkanMaterialData();
+
+    //Create image and relevant descriptor set.
+    auto * state = (SingletonVulkanRenderState*) Relic::Instance()->GetPrimaryWorld()->Registry()->ctx<SingletonRenderState*>();
+
+    VkFormat imageFormat = VK_FORMAT_R8G8B8A8_SRGB;
+    CreateImage(state->allocator, data->texture.image, data->texture.allocation, VK_IMAGE_TYPE_2D, imageFormat, material->texture->width, material->texture->height, 1, 1, 1, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+    CreateImageView(state->device, data->texture.view, data->texture.image, imageFormat, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT);
+
+    VkExtent3D extent = {
+            material->texture->width,
+            material->texture->height,
+            1
+    };
+
+    WriteToImage(state->allocator, data->texture.image, imageFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, material->texture->data, material->texture->dataSize, extent, state->commandPool, state->device, state->graphicsQueue);
+
+    CreateSampler(state->device, data->texture.sampler);
+
+    VkDescriptorSetAllocateInfo allocateInfo = {};
+    allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocateInfo.descriptorPool = state->descriptorPool;
+    allocateInfo.descriptorSetCount = 1;
+    allocateInfo.pSetLayouts = &state->materialDescriptorSetLayout;
+
+    if(vkAllocateDescriptorSets(state->device, &allocateInfo, &data->descriptorSet) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create descriptor set for material.");
+    }
+
+    VkDescriptorImageInfo info = {};
+    info.sampler = data->texture.sampler;
+    info.imageView = data->texture.view;
+    info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+    VkWriteDescriptorSet descriptorWrite = {};
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstSet = data->descriptorSet;
+    descriptorWrite.dstBinding = 1;
+    descriptorWrite.dstArrayElement = 0;
+    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptorWrite.descriptorCount = 1;
+    descriptorWrite.pImageInfo = &info;
+
+    vkUpdateDescriptorSets(state->device, 1, &descriptorWrite, 0, nullptr);
+
+    material->renderData = data;
 }
 
 
